@@ -54,6 +54,7 @@ struct PetHomeView: View {
 
     @AppStorage("stepGoal") private var stepGoal: Int = 10_000
     @State private var showFeedSheet = false
+    @State private var feedTrigger: Int = 0
 
     var body: some View {
         NavigationStack {
@@ -78,10 +79,22 @@ struct PetHomeView: View {
         }
         .background(.clear)
         .sheet(isPresented: $showFeedSheet) {
-            FeedSheet(pet: pet, manager: manager, stepGoal: stepGoal)
+            FeedSheet(pet: pet, manager: manager, stepGoal: stepGoal, onFeed: performFeed)
                 .presentationDetents([.medium])
                 .presentationBackground(.ultraThinMaterial)
                 .presentationCornerRadius(28)
+        }
+    }
+
+    private func performFeed() {
+        Task { @MainActor in
+            // Wait for sheet dismiss to finish so the user actually sees the koala react.
+            try? await Task.sleep(for: .milliseconds(280))
+            manager.feed(pet: pet, goal: stepGoal)
+            feedTrigger += 1
+            // Bite-impact haptic lands when the bamboo reaches the mouth (~0.4s into keyframes).
+            try? await Task.sleep(for: .milliseconds(400))
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
     }
 
@@ -113,7 +126,7 @@ struct PetHomeView: View {
 
     private var petCard: some View {
         VStack(spacing: 0) {
-            KoalaView(color: pet.color, bodyScale: pet.bodyScale)
+            KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
                 .animation(.spring, value: pet.bodyScale)
                 .padding(.vertical, 12)
 
@@ -154,10 +167,9 @@ struct PetHomeView: View {
             ActionRow(title: "Feed", icon: "🎋", enabled: tier.canFeed, stepsNeeded: max(0, feedThreshold - steps), position: .top) {
                 showFeedSheet = true
             }
-            ActionRow(title: "Play", icon: "🎾", enabled: tier.canPlay, stepsNeeded: max(0, playThreshold - steps), position: .middle) {
+            ActionRow(title: "Play", icon: "🎾", enabled: tier.canPlay, stepsNeeded: max(0, playThreshold - steps), position: .bottom) {
                 manager.play(pet: pet, goal: stepGoal)
             }
-            ActionRow(title: "Accessorize", icon: "🎀", enabled: tier.canAccessorize, stepsNeeded: max(0, stepGoal - steps), position: .bottom) { }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
@@ -180,6 +192,7 @@ private struct FeedSheet: View {
     var pet: Pet
     var manager: PetManager
     var stepGoal: Int
+    var onFeed: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -245,8 +258,8 @@ private struct FeedSheet: View {
             .padding(.bottom, 28)
 
             Button {
-                manager.feed(pet: pet, goal: stepGoal)
                 dismiss()
+                onFeed()
             } label: {
                 Text("Feed")
                     .font(.body.weight(.semibold))
