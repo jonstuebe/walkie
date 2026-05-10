@@ -156,42 +156,55 @@ struct PetHomeView: View {
         let stepsToNext = BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
         let canFeed = available > 0 && !isFull
 
-        return Button(action: { performFeed() }) {
-            HStack(spacing: 16) {
-                BambooStockRing(available: available, dimmed: !canFeed)
-                    .frame(width: 56, height: 56)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Feed")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(canFeed ? .white : .white.opacity(0.5))
-                    Text(primaryFeedLabel(canFeed: canFeed, isFull: isFull, available: available))
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.55))
-                    if !isFull {
-                        Text("\(formatted(stepsToNext)) steps to next 🎋")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.35))
-                    }
+        return HStack(spacing: 16) {
+            BambooStockRing(available: available, dimmed: !canFeed)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(primaryFeedLabel(canFeed: canFeed, isFull: isFull, available: available))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(canFeed ? .white : .white.opacity(0.6))
+                if let secondary = secondaryFeedLabel(canFeed: canFeed, isFull: isFull, stepsToNext: stepsToNext) {
+                    Text(secondary)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.45))
                 }
-                Spacer(minLength: 0)
             }
-            .padding(20)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 20))
+            Spacer(minLength: 8)
+            Button(action: { performFeed() }) {
+                Text("Feed")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(canFeed ? .black : .white.opacity(0.35))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule().fill(canFeed ? Color.white : Color.white.opacity(0.08))
+                    )
+                    .overlay(
+                        Capsule().strokeBorder(.white.opacity(canFeed ? 0 : 0.12), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(FeedPillButtonStyle())
+            .disabled(!canFeed)
         }
-        .buttonStyle(FeedCardButtonStyle())
-        .disabled(!canFeed)
+        .padding(20)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+        )
     }
 
     private func primaryFeedLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
         if isFull { return "Already full" }
-        if canFeed { return "\(available) bamboo ready · +10% health each" }
+        if canFeed { return "\(available) bamboo ready" }
         return "Walk to earn bamboo"
+    }
+
+    private func secondaryFeedLabel(canFeed: Bool, isFull: Bool, stepsToNext: Int) -> String? {
+        if isFull { return nil }
+        if canFeed { return "+10% health · \(formatted(stepsToNext)) to next 🎋" }
+        return "\(formatted(stepsToNext)) steps to next 🎋"
     }
 
     private func formatted(_ n: Int) -> String {
@@ -249,10 +262,10 @@ private struct BambooStockRing: View {
     }
 }
 
-private struct FeedCardButtonStyle: ButtonStyle {
+private struct FeedPillButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
