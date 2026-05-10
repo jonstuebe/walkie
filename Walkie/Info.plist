@@ -107,12 +107,12 @@
 	<dict>
 		<key>UIColorName</key>
 		<string></string>
+		<key>UIImageName</key>
+		<string>Splash</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
 	</dict>
 	<key>UNUserNotificationCenterDelegate</key>
 	<true/>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
 </dict>
 </plist>

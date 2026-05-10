@@ -22,6 +22,8 @@ targets:
       properties:
         UILaunchScreen:
           UIColorName: ""
+          UIImageName: Splash
+          UIImageRespectsSafeAreaInsets: false
         NSHealthShareUsageDescription: "Walkie reads your step count to keep your koala fed and happy."
         NSHealthUpdateUsageDescription: "Walkie needs access to your step data."
         UIBackgroundModes:

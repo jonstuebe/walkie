@@ -12,9 +12,8 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            PetMeshGradient(color: pets.first?.color ?? Color(red: 0.3, green: 0.2, blue: 0.5))
+            Color(red: 0.04, green: 0.08, blue: 0.06)
                 .ignoresSafeArea()
-                .animation(.easeInOut(duration: 1.2), value: pets.first?.colorHex)
 
             TabView(selection: $tab) {
                 petTab
@@ -118,9 +117,13 @@ struct PetHomeView: View {
 
     private var petCard: some View {
         VStack(spacing: 0) {
-            KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
-                .animation(.spring, value: pet.bodyScale)
-                .padding(.vertical, 12)
+            ZStack {
+                ForestBackdrop()
+                KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
+                    .animation(.spring, value: pet.bodyScale)
+                    .padding(.vertical, 12)
+            }
+            .frame(maxWidth: .infinity)
 
             Divider()
                 .background(.white.opacity(0.1))
@@ -141,6 +144,7 @@ struct PetHomeView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
+            .background(Color(red: 0.08, green: 0.10, blue: 0.09))
         }
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -270,45 +274,140 @@ private struct FeedPillButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Shared gradient
+// MARK: - Forest backdrop
 
-struct PetMeshGradient: View {
+struct ForestBackdrop: View {
+    var shadowY: CGFloat = 0.97
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.04, green: 0.14, blue: 0.11),
+                        Color(red: 0.08, green: 0.26, blue: 0.20),
+                        Color(red: 0.06, green: 0.20, blue: 0.14),
+                        Color(red: 0.03, green: 0.10, blue: 0.07)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+
+                RadialGradient(
+                    colors: [
+                        Color(red: 0.55, green: 0.95, blue: 0.65).opacity(0.18),
+                        Color.clear
+                    ],
+                    center: UnitPoint(x: 0.5, y: 0.82),
+                    startRadius: 6,
+                    endRadius: max(w, h) * 0.55
+                )
+
+                BambooStalk(width: 4, height: h * 0.78, segments: 4, color: Self.distantColor)
+                    .opacity(0.32).blur(radius: 1.4)
+                    .offset(x: -w * 0.30, y: h * 0.05)
+                BambooStalk(width: 4, height: h * 0.85, segments: 5, color: Self.distantColor)
+                    .opacity(0.30).blur(radius: 1.4)
+                    .offset(x: w * 0.22, y: -h * 0.02)
+                BambooStalk(width: 4, height: h * 0.62, segments: 3, color: Self.distantColor)
+                    .opacity(0.26).blur(radius: 1.6)
+                    .offset(x: w * 0.05, y: h * 0.18)
+
+                BambooStalk(width: 7, height: h * 1.10, segments: 6, color: Self.midColor)
+                    .opacity(0.6)
+                    .offset(x: -w * 0.40, y: 0)
+                BambooStalk(width: 7, height: h * 1.05, segments: 5, color: Self.midColor)
+                    .opacity(0.6)
+                    .offset(x: w * 0.36, y: -h * 0.04)
+
+                BambooStalk(width: 12, height: h * 1.20, segments: 6, color: Self.nearColor)
+                    .opacity(0.9)
+                    .offset(x: -w * 0.46, y: h * 0.02)
+                BambooStalk(width: 11, height: h * 1.18, segments: 6, color: Self.nearColor)
+                    .opacity(0.9)
+                    .offset(x: w * 0.47, y: 0)
+
+                forestFloor(width: w, height: h)
+
+                Ellipse()
+                    .fill(RadialGradient(
+                        colors: [Color.black.opacity(0.55), Color.black.opacity(0)],
+                        center: .center,
+                        startRadius: 2, endRadius: 70
+                    ))
+                    .frame(width: 140, height: 22)
+                    .position(x: w * 0.5, y: h * shadowY)
+            }
+            .frame(width: w, height: h)
+            .clipped()
+        }
+    }
+
+    private func forestFloor(width w: CGFloat, height h: CGFloat) -> some View {
+        let leftY  = h * 1.04
+        let rightY = h * 1.06
+        let crestY = h * 0.66
+        let crestX = w * 0.55
+        let floorBottom = h + 200
+
+        return Path { p in
+            p.move(to: CGPoint(x: -20, y: leftY))
+            p.addQuadCurve(
+                to: CGPoint(x: w + 20, y: rightY),
+                control: CGPoint(x: crestX, y: crestY)
+            )
+            p.addLine(to: CGPoint(x: w + 20, y: floorBottom))
+            p.addLine(to: CGPoint(x: -20, y: floorBottom))
+            p.closeSubpath()
+        }
+        .fill(LinearGradient(
+            colors: [
+                Color(red: 0.20, green: 0.42, blue: 0.26),
+                Color(red: 0.14, green: 0.32, blue: 0.20),
+                Color(red: 0.10, green: 0.24, blue: 0.16)
+            ],
+            startPoint: .top, endPoint: .bottom
+        ))
+    }
+
+    private static let distantColor = Color(red: 0.18, green: 0.32, blue: 0.22)
+    private static let midColor     = Color(red: 0.30, green: 0.55, blue: 0.34)
+    private static let nearColor    = Color(red: 0.38, green: 0.62, blue: 0.40)
+}
+
+private struct BambooStalk: View {
+    var width: CGFloat
+    var height: CGFloat
+    var segments: Int
     var color: Color
 
     var body: some View {
-        MeshGradient(
-            width: 3,
-            height: 3,
-            points: [
-                [0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
-                [0.0, 0.5], [0.6, 0.4], [1.0, 0.5],
-                [0.0, 1.0], [0.5, 1.0], [1.0, 1.0]
-            ],
-            colors: meshColors(from: color)
-        )
-    }
+        ZStack {
+            Capsule()
+                .fill(LinearGradient(
+                    colors: [
+                        color.opacity(0.55),
+                        color,
+                        color.opacity(0.65)
+                    ],
+                    startPoint: .leading, endPoint: .trailing
+                ))
+                .frame(width: width, height: height)
 
-    private func meshColors(from color: Color) -> [Color] {
-        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        UIColor(color).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+            Capsule()
+                .fill(Color.white.opacity(0.10))
+                .frame(width: max(1, width * 0.18), height: height * 0.94)
+                .offset(x: -width * 0.22)
 
-        let shifted = (h + 0.06).truncatingRemainder(dividingBy: 1.0)
-        let back    = (h - 0.06 + 1.0).truncatingRemainder(dividingBy: 1.0)
-
-        return [
-            // top row
-            Color(hue: back,    saturation: s * 0.35, brightness: 0.07),
-            Color(hue: h,       saturation: s * 0.50, brightness: 0.13),
-            Color(hue: shifted, saturation: s * 0.30, brightness: 0.08),
-            // middle row
-            Color(hue: h,       saturation: s * 0.55, brightness: 0.14),
-            Color(hue: h,       saturation: s * 0.70, brightness: 0.24),
-            Color(hue: shifted, saturation: s * 0.45, brightness: 0.11),
-            // bottom row
-            Color(hue: back,    saturation: s * 0.30, brightness: 0.06),
-            Color(hue: h,       saturation: s * 0.40, brightness: 0.10),
-            Color(hue: shifted, saturation: s * 0.35, brightness: 0.07),
-        ]
+            ForEach(1...max(1, segments), id: \.self) { i in
+                Capsule()
+                    .fill(Color.black.opacity(0.38))
+                    .frame(width: width * 1.45, height: 2)
+                    .offset(y: -height * 0.5 + height * (CGFloat(i) / CGFloat(segments + 1)))
+            }
+        }
+        .frame(width: width, height: height)
     }
 }
 

@@ -8,10 +8,15 @@
 import SwiftUI
 import AppKit
 
-// The view rendered into each icon. Sky-to-grass gradient background so the
-// koala's body color stands out regardless of which PetColor was picked.
+// The view rendered into each icon. Sky-to-grass gradient background with
+// bamboo stalks flanking the koala so the focal pet still pops while hinting
+// at the in-app forest backdrop.
 private struct AppIconArt: View {
     let color: Color
+
+    private static let nearStalk = Color(red: 0.40, green: 0.66, blue: 0.42)
+    private static let midStalk  = Color(red: 0.32, green: 0.58, blue: 0.36)
+    private static let farStalk  = Color(red: 0.26, green: 0.48, blue: 0.30)
 
     var body: some View {
         ZStack {
@@ -23,11 +28,69 @@ private struct AppIconArt: View {
                 startPoint: .top, endPoint: .bottom
             )
 
+            // Distant stalks, blurred and tucked behind the koala silhouette.
+            IconBambooStalk(width: 28, height: 980, segments: 5, color: Self.farStalk)
+                .opacity(0.45).blur(radius: 4)
+                .offset(x: -180, y: -10)
+            IconBambooStalk(width: 26, height: 920, segments: 5, color: Self.farStalk)
+                .opacity(0.40).blur(radius: 4)
+                .offset(x: 200, y: 30)
+
+            // Mid stalks just inside the icon edge.
+            IconBambooStalk(width: 52, height: 1120, segments: 6, color: Self.midStalk)
+                .opacity(0.85)
+                .offset(x: -360, y: 0)
+            IconBambooStalk(width: 48, height: 1080, segments: 6, color: Self.midStalk)
+                .opacity(0.85)
+                .offset(x: 370, y: -20)
+
+            // Foreground stalks anchoring the corners.
+            IconBambooStalk(width: 78, height: 1200, segments: 6, color: Self.nearStalk)
+                .offset(x: -450, y: 30)
+            IconBambooStalk(width: 74, height: 1180, segments: 6, color: Self.nearStalk)
+                .offset(x: 455, y: 10)
+
             KoalaView(color: color, bodyScale: 1.0)
                 .scaleEffect(3.6)
                 .offset(y: 60)
         }
         .frame(width: 1024, height: 1024)
+        .clipped()
+    }
+}
+
+private struct IconBambooStalk: View {
+    var width: CGFloat
+    var height: CGFloat
+    var segments: Int
+    var color: Color
+
+    var body: some View {
+        ZStack {
+            Capsule()
+                .fill(LinearGradient(
+                    colors: [
+                        color.opacity(0.65),
+                        color,
+                        color.opacity(0.75)
+                    ],
+                    startPoint: .leading, endPoint: .trailing
+                ))
+                .frame(width: width, height: height)
+
+            Capsule()
+                .fill(Color.white.opacity(0.16))
+                .frame(width: max(1, width * 0.18), height: height * 0.94)
+                .offset(x: -width * 0.22)
+
+            ForEach(1...max(1, segments), id: \.self) { i in
+                Capsule()
+                    .fill(Color.black.opacity(0.32))
+                    .frame(width: width * 1.45, height: max(2, width * 0.16))
+                    .offset(y: -height * 0.5 + height * (CGFloat(i) / CGFloat(segments + 1)))
+            }
+        }
+        .frame(width: width, height: height)
     }
 }
 
