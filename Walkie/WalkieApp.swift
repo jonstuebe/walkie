@@ -33,7 +33,7 @@ struct WalkieApp: App {
         let context = container.mainContext
         let descriptor = FetchDescriptor<Pet>()
         if let pet = try? context.fetch(descriptor).first {
-            NotificationService.shared.scheduleDailyReminder(petName: pet.name)
+            NotificationService.shared.scheduleWalkReminders(petName: pet.name)
             AppIconManager.sync(toColorHex: pet.colorHex)
         }
     }
