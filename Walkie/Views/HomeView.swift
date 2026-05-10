@@ -159,34 +159,21 @@ struct PetHomeView: View {
         let canFeed = available > 0 && !isFull
 
         return Button(action: { performFeed() }) {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    Text("🎋")
-                        .font(.title)
-                        .frame(width: 44, height: 44)
-                        .background(.white.opacity(canFeed ? 0.18 : 0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(primaryLabel(canFeed: canFeed, isFull: isFull, available: available))
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(canFeed ? .white : .white.opacity(0.5))
-                        Text(secondaryLabel(canFeed: canFeed, isFull: isFull, available: available))
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.45))
-                    }
-                    Spacer(minLength: 0)
+            HStack(spacing: 16) {
+                BambooProgressRing(progress: bambooProgress)
+                    .frame(width: 56, height: 56)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Feed")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(canFeed ? .white : .white.opacity(0.5))
+                    Text(secondaryLabel(canFeed: canFeed, isFull: isFull, available: available))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.45))
+                    Text("\(formatted(stepsToNext)) steps to go")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.35))
                 }
-
-                VStack(spacing: 6) {
-                    BambooProgressBar(progress: bambooProgress)
-                        .frame(height: 6)
-                    HStack {
-                        Spacer()
-                        Text("\(formatted(stepsToNext)) steps to go")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.45))
-                    }
-                }
+                Spacer(minLength: 0)
             }
             .padding(20)
             .background(.ultraThinMaterial)
@@ -201,14 +188,8 @@ struct PetHomeView: View {
         .disabled(!canFeed)
     }
 
-    private func primaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
-        if isFull { return "Already full" }
-        if !canFeed && available == 0 { return "No bamboo yet" }
-        return "Feed"
-    }
-
     private func secondaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
-        if isFull { return "Health is maxed out" }
+        if isFull { return "Already full" }
         if canFeed { return "+10% health per feed" }
         return "Walk to earn your first bamboo"
     }
@@ -227,21 +208,30 @@ struct PetHomeView: View {
     }
 }
 
-private struct BambooProgressBar: View {
+private struct BambooProgressRing: View {
     var progress: Double  // 0...1
 
+    private var clamped: CGFloat {
+        CGFloat(min(1.0, max(0.0, progress)))
+    }
+
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.10))
-                Capsule()
-                    .fill(LinearGradient(
+        ZStack {
+            Circle()
+                .stroke(.white.opacity(0.12), lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: clamped)
+                .stroke(
+                    LinearGradient(
                         colors: [Color(red: 0.55, green: 0.85, blue: 0.55), Color(red: 0.30, green: 0.70, blue: 0.40)],
-                        startPoint: .leading, endPoint: .trailing
-                    ))
-                    .frame(width: max(4, geo.size.width * min(1.0, max(0, progress))))
-                    .animation(.spring(response: 0.5), value: progress)
-            }
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(response: 0.5), value: clamped)
+            Text("🎋")
+                .font(.system(size: 24))
         }
     }
 }
