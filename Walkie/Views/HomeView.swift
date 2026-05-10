@@ -183,18 +183,15 @@ struct PetHomeView: View {
         )
     }
 
-    private func feedRowTrailing(available: Int, isFull: Bool, stepsToNext: Int?) -> ActionRow.Trailing {
+    private func feedRowTrailing(available: Int, isFull: Bool, stepsToNext: Int) -> ActionRow.Trailing {
         if isFull {
             return .label("Already full")
         }
         if available > 0 {
             return .badge("\(available) 🎋")
         }
-        if let s = stepsToNext, s > 0 {
-            let formatted = NumberFormatter.localizedString(from: NSNumber(value: s), number: .decimal)
-            return .label("\(formatted) more steps")
-        }
-        return .label("Daily cap reached")
+        let formatted = NumberFormatter.localizedString(from: NSNumber(value: stepsToNext), number: .decimal)
+        return .label("\(formatted) more steps")
     }
 
     private func tierColor(_ tier: StepTier) -> Color {
@@ -219,23 +216,16 @@ private struct FeedSheet: View {
 
     private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
     private var earned: Int { manager.bambooEarned(goal: stepGoal) }
-    private var stepsToNext: Int? {
+    private var stepsToNext: Int {
         BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
     }
 
     private var subtitle: String {
+        let nextStr = NumberFormatter.localizedString(from: NSNumber(value: stepsToNext), number: .decimal)
         if available > 0 {
-            let rest = stepsToNext.map {
-                let s = NumberFormatter.localizedString(from: NSNumber(value: $0), number: .decimal)
-                return " Walk \(s) more for another."
-            } ?? ""
-            return "\(available) bamboo ready (\(earned)/\(BambooLedger.dailyCap) earned today).\(rest)"
+            return "\(available) bamboo ready. Walk \(nextStr) more for another."
         }
-        if let s = stepsToNext {
-            let formatted = NumberFormatter.localizedString(from: NSNumber(value: s), number: .decimal)
-            return "Walk \(formatted) more steps to earn your next bamboo."
-        }
-        return "You've earned every bamboo for today — nice walk!"
+        return "Walk \(nextStr) more steps to earn your next bamboo."
     }
 
     var body: some View {
