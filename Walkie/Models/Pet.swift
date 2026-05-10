@@ -10,6 +10,9 @@ final class Pet {
     var lastCheckedDate: Date
     var isAlive: Bool
     var totalStepsLifetime: Int
+    // Bamboo ledger — daily reset; default to .distantPast so existing rows roll over on first read.
+    var bambooSpentToday: Int = 0
+    var bambooLedgerDate: Date = Date.distantPast
 
     init(name: String, colorHex: String) {
         self.name = name
@@ -19,6 +22,8 @@ final class Pet {
         self.lastCheckedDate = Calendar.current.startOfDay(for: Date())
         self.isAlive = true
         self.totalStepsLifetime = 0
+        self.bambooSpentToday = 0
+        self.bambooLedgerDate = Calendar.current.startOfDay(for: Date())
     }
 
     var color: Color {

@@ -159,11 +159,20 @@ struct PetHomeView: View {
     }
 
     private var interactionSection: some View {
-        let tier = manager.healthKit.stepTier(for: manager.todaySteps, goal: stepGoal)
-        let steps = manager.todaySteps
-        let feedThreshold = Int(Double(stepGoal) * 0.30)
+        let available = manager.bambooAvailable(for: pet, goal: stepGoal)
+        let isFull = pet.health >= 1.0
+        let stepsToNext = BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
+        let trailing = feedRowTrailing(available: available, isFull: isFull, stepsToNext: stepsToNext)
+        let canFeed = available > 0 && !isFull
+
         return VStack(spacing: 1) {
-            ActionRow(title: "Feed", icon: "🎋", enabled: tier.canFeed, stepsNeeded: max(0, feedThreshold - steps), position: .top) {
+            ActionRow(
+                title: "Feed",
+                icon: "🎋",
+                enabled: canFeed,
+                trailing: trailing,
+                position: .top
+            ) {
                 showFeedSheet = true
             }
         }
@@ -172,6 +181,20 @@ struct PetHomeView: View {
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(.white.opacity(0.12), lineWidth: 1)
         )
+    }
+
+    private func feedRowTrailing(available: Int, isFull: Bool, stepsToNext: Int?) -> ActionRow.Trailing {
+        if isFull {
+            return .label("Already full")
+        }
+        if available > 0 {
+            return .badge("\(available) 🎋")
+        }
+        if let s = stepsToNext, s > 0 {
+            let formatted = NumberFormatter.localizedString(from: NSNumber(value: s), number: .decimal)
+            return .label("\(formatted) more steps")
+        }
+        return .label("Daily cap reached")
     }
 
     private func tierColor(_ tier: StepTier) -> Color {
@@ -194,6 +217,27 @@ private struct FeedSheet: View {
 
     private let healthGain = 0.1
 
+    private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
+    private var earned: Int { manager.bambooEarned(goal: stepGoal) }
+    private var stepsToNext: Int? {
+        BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
+    }
+
+    private var subtitle: String {
+        if available > 0 {
+            let rest = stepsToNext.map {
+                let s = NumberFormatter.localizedString(from: NSNumber(value: $0), number: .decimal)
+                return " Walk \(s) more for another."
+            } ?? ""
+            return "\(available) bamboo ready (\(earned)/\(BambooLedger.dailyCap) earned today).\(rest)"
+        }
+        if let s = stepsToNext {
+            let formatted = NumberFormatter.localizedString(from: NSNumber(value: s), number: .decimal)
+            return "Walk \(formatted) more steps to earn your next bamboo."
+        }
+        return "You've earned every bamboo for today — nice walk!"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Handle
@@ -213,7 +257,7 @@ private struct FeedSheet: View {
                 .foregroundStyle(.white)
                 .padding(.bottom, 6)
 
-            Text("Earn bamboo by walking at least \(Int(Double(stepGoal) * 0.30).formatted()) steps a day.")
+            Text(subtitle)
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
@@ -253,18 +297,20 @@ private struct FeedSheet: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
 
+            let canFeed = available > 0 && pet.health < 1.0
             Button {
                 dismiss()
                 onFeed()
             } label: {
-                Text("Feed")
+                Text(canFeed ? "Feed" : (pet.health >= 1.0 ? "Already Full" : "No Bamboo"))
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(canFeed ? .black : .white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(.white)
+                    .background(canFeed ? .white : .white.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
+            .disabled(!canFeed)
             .padding(.horizontal, 24)
 
             Spacer(minLength: 0)
@@ -274,18 +320,18 @@ private struct FeedSheet: View {
 
 private struct ActionRow: View {
     enum Position { case top, middle, bottom }
+    enum Trailing {
+        case none
+        case label(String)        // muted, for hint/disabled state
+        case badge(String)        // emphasized, for available count
+    }
+
     var title: String
     var icon: String
     var enabled: Bool
-    var stepsNeeded: Int
+    var trailing: Trailing = .none
     var position: Position
     var action: () -> Void
-
-    private static let stepFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        return f
-    }()
 
     var body: some View {
         Button(action: action) {
@@ -299,11 +345,7 @@ private struct ActionRow: View {
                     .font(.body.weight(.medium))
                     .foregroundStyle(enabled ? .white : .white.opacity(0.35))
                 Spacer()
-                if !enabled && stepsNeeded > 0 {
-                    Text("\(Self.stepFormatter.string(from: NSNumber(value: stepsNeeded)) ?? "\(stepsNeeded)") more steps")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.3))
-                }
+                trailingView
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(enabled ? 0.4 : 0.2))
@@ -313,6 +355,26 @@ private struct ActionRow: View {
             .background(.ultraThinMaterial)
         }
         .disabled(!enabled)
+    }
+
+    @ViewBuilder
+    private var trailingView: some View {
+        switch trailing {
+        case .none:
+            EmptyView()
+        case .label(let text):
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.3))
+        case .badge(let text):
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(.white.opacity(0.18))
+                .clipShape(Capsule())
+        }
     }
 }
 

@@ -90,6 +90,41 @@ final class HealthKitService {
     }
 }
 
+// Bamboo ledger: hybrid milestone + bonus model.
+// Milestones at 30%, 50%, 75%, 100% of the daily step goal each award 1 bamboo.
+// Each additional 5,000 steps over goal awards 1 more, capped at the daily total.
+enum BambooLedger {
+    static let dailyCap: Int = 6
+    static let bonusStepsPerBamboo: Int = 5_000
+    static let milestonePercentages: [Double] = [0.30, 0.50, 0.75, 1.00]
+
+    /// Total bamboo earned today for the given step count.
+    static func earned(steps: Int, goal: Int) -> Int {
+        guard goal > 0 else { return 0 }
+        var count = 0
+        for pct in milestonePercentages where steps >= Int(Double(goal) * pct) {
+            count += 1
+        }
+        if steps > goal {
+            count += (steps - goal) / bonusStepsPerBamboo
+        }
+        return min(count, dailyCap)
+    }
+
+    /// Steps remaining until the next bamboo unlocks. Nil if the daily cap is hit.
+    static func stepsToNextBamboo(steps: Int, goal: Int) -> Int? {
+        let current = earned(steps: steps, goal: goal)
+        guard current < dailyCap else { return nil }
+        for pct in milestonePercentages {
+            let threshold = Int(Double(goal) * pct)
+            if steps < threshold { return threshold - steps }
+        }
+        let bonusEarned = current - milestonePercentages.count
+        let nextBonusStep = goal + (bonusEarned + 1) * bonusStepsPerBamboo
+        return max(0, nextBonusStep - steps)
+    }
+}
+
 enum StepTier {
     case thriving, happy, surviving, starving
 

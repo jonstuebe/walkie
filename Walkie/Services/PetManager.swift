@@ -44,8 +44,31 @@ final class PetManager {
     }
 
     func feed(pet: Pet, goal: Int = 10_000) {
-        guard healthKit.stepTier(for: todaySteps, goal: goal).canFeed else { return }
+        rollLedgerIfNeeded(pet: pet)
+        guard bambooAvailable(for: pet, goal: goal) > 0 else { return }
+        guard pet.health < 1.0 else { return }
+        pet.bambooSpentToday += 1
         pet.health = min(1.0, pet.health + 0.1)
+    }
+
+    /// Bamboo earned by today's steps minus what's been fed.
+    func bambooAvailable(for pet: Pet, goal: Int = 10_000) -> Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        let spent = pet.bambooLedgerDate < today ? 0 : pet.bambooSpentToday
+        let earned = BambooLedger.earned(steps: todaySteps, goal: goal)
+        return max(0, earned - spent)
+    }
+
+    func bambooEarned(goal: Int = 10_000) -> Int {
+        BambooLedger.earned(steps: todaySteps, goal: goal)
+    }
+
+    private func rollLedgerIfNeeded(pet: Pet) {
+        let today = Calendar.current.startOfDay(for: Date())
+        if pet.bambooLedgerDate < today {
+            pet.bambooSpentToday = 0
+            pet.bambooLedgerDate = today
+        }
     }
 
     private func killPet(_ pet: Pet) {
