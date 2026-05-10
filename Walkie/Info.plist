@@ -6,6 +6,66 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIcon-Brown</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Brown</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Lavender</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Lavender</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Mint</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Mint</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Peach</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Peach</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Pink</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Pink</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Sand</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Sand</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIcon-Slate</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>AppIcon-Slate</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+	</dict>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>

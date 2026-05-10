@@ -30,6 +30,7 @@ struct OnboardingView: View {
         guard !petName.isEmpty else { return }
         let pet = Pet(name: petName, colorHex: selectedColor.hex)
         modelContext.insert(pet)
+        AppIconManager.sync(toColorHex: pet.colorHex)
         step = .done
     }
 }

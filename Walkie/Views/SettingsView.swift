@@ -30,6 +30,7 @@ struct SettingsView: View {
                                             isSelected: pet.colorHex == petColor.hex
                                         ) {
                                             pet.colorHex = petColor.hex
+                                            AppIconManager.sync(toColorHex: petColor.hex)
                                         }
                                     }
                                 }
