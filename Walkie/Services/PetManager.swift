@@ -48,11 +48,6 @@ final class PetManager {
         pet.health = min(1.0, pet.health + 0.1)
     }
 
-    func play(pet: Pet, goal: Int = 10_000) {
-        guard healthKit.stepTier(for: todaySteps, goal: goal).canPlay else { return }
-        pet.health = min(1.0, pet.health + 0.05)
-    }
-
     private func killPet(_ pet: Pet) {
         let dead = GraveyardPet(from: pet)
         modelContext.insert(dead)

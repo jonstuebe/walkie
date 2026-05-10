@@ -162,13 +162,9 @@ struct PetHomeView: View {
         let tier = manager.healthKit.stepTier(for: manager.todaySteps, goal: stepGoal)
         let steps = manager.todaySteps
         let feedThreshold = Int(Double(stepGoal) * 0.30)
-        let playThreshold = Int(Double(stepGoal) * 0.75)
         return VStack(spacing: 1) {
             ActionRow(title: "Feed", icon: "🎋", enabled: tier.canFeed, stepsNeeded: max(0, feedThreshold - steps), position: .top) {
                 showFeedSheet = true
-            }
-            ActionRow(title: "Play", icon: "🎾", enabled: tier.canPlay, stepsNeeded: max(0, playThreshold - steps), position: .bottom) {
-                manager.play(pet: pet, goal: stepGoal)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 20))

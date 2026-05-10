@@ -112,5 +112,4 @@ enum StepTier {
     }
 
     var canFeed: Bool { self != .starving }
-    var canPlay: Bool { self == .happy || self == .thriving }
 }
