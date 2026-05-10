@@ -175,24 +175,12 @@ struct PetHomeView: View {
                             .foregroundStyle(.white.opacity(0.45))
                     }
                     Spacer(minLength: 0)
-                    if available > 0 {
-                        Text("\(available) 🎋")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.white.opacity(0.18))
-                            .clipShape(Capsule())
-                    }
                 }
 
                 VStack(spacing: 6) {
                     BambooProgressBar(progress: bambooProgress)
                         .frame(height: 6)
                     HStack {
-                        Text("Next 🎋")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.45))
                         Spacer()
                         Text("\(formatted(stepsToNext)) steps to go")
                             .font(.caption2.monospacedDigit())
@@ -214,10 +202,9 @@ struct PetHomeView: View {
     }
 
     private func primaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
-        if canFeed { return "Feed Koala" }
         if isFull { return "Already full" }
-        if available == 0 { return "No bamboo yet" }
-        return "Feed Koala"
+        if !canFeed && available == 0 { return "No bamboo yet" }
+        return "Feed"
     }
 
     private func secondaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
