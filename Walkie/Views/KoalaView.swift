@@ -23,6 +23,9 @@ struct KoalaView: View {
     @State private var feedStart: Date = .distantPast
     @State private var sparkleActive: Bool = false
     @State private var blinkSquint: Double = 1.0
+    @State private var wiggleScaleX: Double = 1.0
+    @State private var wiggleScaleY: Double = 1.0
+    @State private var wiggleTask: Task<Void, Never>?
 
     var body: some View {
         Color.clear
@@ -121,6 +124,11 @@ struct KoalaView: View {
                     CubicKeyframe(1.00, duration: 0.20)
                 }
             }
+            .scaleEffect(x: wiggleScaleX, y: wiggleScaleY, anchor: .bottom)
+            .onTapGesture {
+                guard isAlive else { return }
+                wiggle()
+            }
             .onChange(of: feedingTrigger) { _, newValue in
                 guard newValue > 0 else { return }
                 feedStart = .now
@@ -148,6 +156,29 @@ struct KoalaView: View {
                     }
                 }
             }
+    }
+
+    @MainActor
+    private func wiggle() {
+        wiggleTask?.cancel()
+        wiggleTask = Task { @MainActor in
+            withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) {
+                wiggleScaleX = 1.12
+                wiggleScaleY = 0.88
+            }
+            try? await Task.sleep(for: .milliseconds(140))
+            if Task.isCancelled { return }
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.45)) {
+                wiggleScaleX = 0.94
+                wiggleScaleY = 1.06
+            }
+            try? await Task.sleep(for: .milliseconds(160))
+            if Task.isCancelled { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                wiggleScaleX = 1.0
+                wiggleScaleY = 1.0
+            }
+        }
     }
 
     @MainActor
