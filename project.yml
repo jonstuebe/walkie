@@ -1,0 +1,47 @@
+name: Walkie
+options:
+  bundleIdPrefix: com.jonstuebe
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    SWIFT_VERSION: 5.9
+    TARGETED_DEVICE_FAMILY: 1
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  Walkie:
+    type: application
+    platform: iOS
+    sources:
+      - path: Walkie
+    info:
+      path: Walkie/Info.plist
+      properties:
+        UILaunchScreen:
+          UIColorName: ""
+        NSHealthShareUsageDescription: "Walkie reads your step count to keep your koala fed and happy."
+        NSHealthUpdateUsageDescription: "Walkie needs access to your step data."
+        UIBackgroundModes:
+          - healthkit
+        UNUserNotificationCenterDelegate: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+    entitlements:
+      path: Walkie/Walkie.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access:
+          - health-records
+    dependencies:
+      - sdk: HealthKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonstuebe.Walkie
+        INFOPLIST_FILE: Walkie/Info.plist
