@@ -53,7 +53,6 @@ struct PetHomeView: View {
     var manager: PetManager
 
     @AppStorage("stepGoal") private var stepGoal: Int = 10_000
-    @State private var showFeedSheet = false
     @State private var feedTrigger: Int = 0
 
     var body: some View {
@@ -62,7 +61,7 @@ struct PetHomeView: View {
                 VStack(spacing: 16) {
                     stepsCard
                     petCard
-                    interactionSection
+                    feedCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -78,20 +77,13 @@ struct PetHomeView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .background(.clear)
-        .sheet(isPresented: $showFeedSheet) {
-            FeedSheet(pet: pet, manager: manager, stepGoal: stepGoal, onFeed: performFeed)
-                .presentationDetents([.medium])
-                .presentationBackground(.ultraThinMaterial)
-                .presentationCornerRadius(28)
-        }
     }
 
     private func performFeed() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        manager.feed(pet: pet, goal: stepGoal)
+        feedTrigger += 1
         Task { @MainActor in
-            // Wait for sheet dismiss to finish so the user actually sees the koala react.
-            try? await Task.sleep(for: .milliseconds(280))
-            manager.feed(pet: pet, goal: stepGoal)
-            feedTrigger += 1
             // Bite-impact haptic lands when the bamboo reaches the mouth (~0.4s into keyframes).
             try? await Task.sleep(for: .milliseconds(400))
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -158,40 +150,84 @@ struct PetHomeView: View {
         )
     }
 
-    private var interactionSection: some View {
+    private var feedCard: some View {
         let available = manager.bambooAvailable(for: pet, goal: stepGoal)
         let isFull = pet.health >= 1.0
         let stepsToNext = BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
-        let trailing = feedRowTrailing(available: available, isFull: isFull, stepsToNext: stepsToNext)
+        let stride = BambooLedger.stepsPerBamboo(goal: stepGoal)
+        let bambooProgress = Double(stride - stepsToNext) / Double(stride)
         let canFeed = available > 0 && !isFull
 
-        return VStack(spacing: 1) {
-            ActionRow(
-                title: "Feed",
-                icon: "🎋",
-                enabled: canFeed,
-                trailing: trailing,
-                position: .top
-            ) {
-                showFeedSheet = true
+        return Button(action: { performFeed() }) {
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    Text("🎋")
+                        .font(.title)
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(canFeed ? 0.18 : 0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(primaryLabel(canFeed: canFeed, isFull: isFull, available: available))
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(canFeed ? .white : .white.opacity(0.5))
+                        Text(secondaryLabel(canFeed: canFeed, isFull: isFull, available: available))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.45))
+                    }
+                    Spacer(minLength: 0)
+                    if available > 0 {
+                        Text("\(available) 🎋")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.white.opacity(0.18))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                VStack(spacing: 6) {
+                    BambooProgressBar(progress: bambooProgress)
+                        .frame(height: 6)
+                    HStack {
+                        Text("Next 🎋")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.45))
+                        Spacer()
+                        Text("\(formatted(stepsToNext)) steps to go")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.45))
+                    }
+                }
             }
+            .padding(20)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 20))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-        )
+        .buttonStyle(FeedCardButtonStyle())
+        .disabled(!canFeed)
     }
 
-    private func feedRowTrailing(available: Int, isFull: Bool, stepsToNext: Int) -> ActionRow.Trailing {
-        if isFull {
-            return .label("Already full")
-        }
-        if available > 0 {
-            return .badge("\(available) 🎋")
-        }
-        let formatted = NumberFormatter.localizedString(from: NSNumber(value: stepsToNext), number: .decimal)
-        return .label("\(formatted) more steps")
+    private func primaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
+        if canFeed { return "Feed Koala" }
+        if isFull { return "Already full" }
+        if available == 0 { return "No bamboo yet" }
+        return "Feed Koala"
+    }
+
+    private func secondaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
+        if isFull { return "Health is maxed out" }
+        if canFeed { return "+10% health per feed" }
+        return "Walk to earn your first bamboo"
+    }
+
+    private func formatted(_ n: Int) -> String {
+        NumberFormatter.localizedString(from: NSNumber(value: n), number: .decimal)
     }
 
     private func tierColor(_ tier: StepTier) -> Color {
@@ -204,167 +240,30 @@ struct PetHomeView: View {
     }
 }
 
-private struct FeedSheet: View {
-    var pet: Pet
-    var manager: PetManager
-    var stepGoal: Int
-    var onFeed: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-
-    private let healthGain = 0.1
-
-    private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
-    private var earned: Int { manager.bambooEarned(goal: stepGoal) }
-    private var stepsToNext: Int {
-        BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
-    }
-
-    private var subtitle: String {
-        let nextStr = NumberFormatter.localizedString(from: NSNumber(value: stepsToNext), number: .decimal)
-        if available > 0 {
-            return "\(available) bamboo ready. Walk \(nextStr) more for another."
-        }
-        return "Walk \(nextStr) more steps to earn your next bamboo."
-    }
+private struct BambooProgressBar: View {
+    var progress: Double  // 0...1
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Handle
-            Capsule()
-                .fill(.white.opacity(0.25))
-                .frame(width: 36, height: 4)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
-
-            // Food icon
-            Text("🎋")
-                .font(.system(size: 72))
-                .padding(.bottom, 16)
-
-            Text("Feed \(pet.name)")
-                .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
-                .padding(.bottom, 6)
-
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.55))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 32)
-
-            // Health preview
-            HStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    Text("Current")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                    Text("\(Int(pet.health * 100))%")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                .frame(maxWidth: .infinity)
-
-                Image(systemName: "arrow.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-
-                VStack(spacing: 4) {
-                    Text("After Feeding")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                    Text("\(Int(min(1.0, pet.health + healthGain) * 100))%")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.green)
-                }
-                .frame(maxWidth: .infinity)
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(.white.opacity(0.10))
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.85, blue: 0.55), Color(red: 0.30, green: 0.70, blue: 0.40)],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: max(4, geo.size.width * min(1.0, max(0, progress))))
+                    .animation(.spring(response: 0.5), value: progress)
             }
-            .padding(.vertical, 20)
-            .padding(.horizontal, 24)
-            .background(.white.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 24)
-            .padding(.bottom, 28)
-
-            let canFeed = available > 0 && pet.health < 1.0
-            Button {
-                dismiss()
-                onFeed()
-            } label: {
-                Text(canFeed ? "Feed" : (pet.health >= 1.0 ? "Already Full" : "No Bamboo"))
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(canFeed ? .black : .white.opacity(0.4))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(canFeed ? .white : .white.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-            .disabled(!canFeed)
-            .padding(.horizontal, 24)
-
-            Spacer(minLength: 0)
         }
     }
 }
 
-private struct ActionRow: View {
-    enum Position { case top, middle, bottom }
-    enum Trailing {
-        case none
-        case label(String)        // muted, for hint/disabled state
-        case badge(String)        // emphasized, for available count
-    }
-
-    var title: String
-    var icon: String
-    var enabled: Bool
-    var trailing: Trailing = .none
-    var position: Position
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Text(icon)
-                    .font(.title3)
-                    .frame(width: 32, height: 32)
-                    .background(.white.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                Text(title)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(enabled ? .white : .white.opacity(0.35))
-                Spacer()
-                trailingView
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(enabled ? 0.4 : 0.2))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(.ultraThinMaterial)
-        }
-        .disabled(!enabled)
-    }
-
-    @ViewBuilder
-    private var trailingView: some View {
-        switch trailing {
-        case .none:
-            EmptyView()
-        case .label(let text):
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.3))
-        case .badge(let text):
-            Text(text)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(.white.opacity(0.18))
-                .clipShape(Capsule())
-        }
+private struct FeedCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
