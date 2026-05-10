@@ -7,6 +7,7 @@ final class HealthKitService {
     private let store = HKHealthStore()
     var isAuthorized = false
     var authorizationError: Error?
+    var todaySteps: Int = 0
 
     private let stepType = HKQuantityType(.stepCount)
     private var observerQuery: HKObserverQuery?
@@ -51,7 +52,9 @@ final class HealthKitService {
     }
 
     func stepsToday() async -> Int {
-        await steps(for: Date())
+        let count = await steps(for: Date())
+        await MainActor.run { self.todaySteps = count }
+        return count
     }
 
     func steps(for date: Date) async -> Int {

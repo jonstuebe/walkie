@@ -18,7 +18,7 @@ final class Pet {
         self.name = name
         self.colorHex = colorHex
         self.birthDate = Date()
-        self.health = 1.0
+        self.health = 0.75
         self.lastCheckedDate = Calendar.current.startOfDay(for: Date())
         self.isAlive = true
         self.totalStepsLifetime = 0

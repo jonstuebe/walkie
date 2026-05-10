@@ -6,7 +6,7 @@ final class PetManager {
     private var modelContext: ModelContext
     let healthKit: HealthKitService
 
-    var todaySteps: Int = 0
+    var todaySteps: Int { healthKit.todaySteps }
     var isLoading = false
 
     init(modelContext: ModelContext, healthKit: HealthKitService) {
@@ -20,7 +20,7 @@ final class PetManager {
         defer { isLoading = false }
 
         await healthKit.requestAuthorization()
-        todaySteps = await healthKit.stepsToday()
+        _ = await healthKit.stepsToday()
 
         let today = Calendar.current.startOfDay(for: Date())
         guard pet.lastCheckedDate < today else { return }

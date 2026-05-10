@@ -154,24 +154,24 @@ struct PetHomeView: View {
         let available = manager.bambooAvailable(for: pet, goal: stepGoal)
         let isFull = pet.health >= 1.0
         let stepsToNext = BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
-        let stride = BambooLedger.stepsPerBamboo(goal: stepGoal)
-        let bambooProgress = Double(stride - stepsToNext) / Double(stride)
         let canFeed = available > 0 && !isFull
 
         return Button(action: { performFeed() }) {
             HStack(spacing: 16) {
-                BambooProgressRing(progress: bambooProgress)
+                BambooStockRing(available: available, dimmed: !canFeed)
                     .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Feed")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(canFeed ? .white : .white.opacity(0.5))
-                    Text(secondaryLabel(canFeed: canFeed, isFull: isFull, available: available))
+                    Text(primaryFeedLabel(canFeed: canFeed, isFull: isFull, available: available))
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.45))
-                    Text("\(formatted(stepsToNext)) steps to go")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(.white.opacity(0.55))
+                    if !isFull {
+                        Text("\(formatted(stepsToNext)) steps to next 🎋")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -188,10 +188,10 @@ struct PetHomeView: View {
         .disabled(!canFeed)
     }
 
-    private func secondaryLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
+    private func primaryFeedLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
         if isFull { return "Already full" }
-        if canFeed { return "+10% health per feed" }
-        return "Walk to earn your first bamboo"
+        if canFeed { return "\(available) bamboo ready · +10% health each" }
+        return "Walk to earn bamboo"
     }
 
     private func formatted(_ n: Int) -> String {
@@ -208,11 +208,15 @@ struct PetHomeView: View {
     }
 }
 
-private struct BambooProgressRing: View {
-    var progress: Double  // 0...1
+// Ring shows bamboo banked for today, capped at 10 (one full health refill).
+// Center shows the count when > 0, the bamboo glyph as a placeholder otherwise.
+private struct BambooStockRing: View {
+    var available: Int
+    var dimmed: Bool
 
-    private var clamped: CGFloat {
-        CGFloat(min(1.0, max(0.0, progress)))
+    private var fill: CGFloat {
+        guard available > 0 else { return 0 }
+        return CGFloat(min(10, available)) / 10.0
     }
 
     var body: some View {
@@ -220,7 +224,7 @@ private struct BambooProgressRing: View {
             Circle()
                 .stroke(.white.opacity(0.12), lineWidth: 5)
             Circle()
-                .trim(from: 0, to: clamped)
+                .trim(from: 0, to: fill)
                 .stroke(
                     LinearGradient(
                         colors: [Color(red: 0.55, green: 0.85, blue: 0.55), Color(red: 0.30, green: 0.70, blue: 0.40)],
@@ -229,10 +233,19 @@ private struct BambooProgressRing: View {
                     style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.5), value: clamped)
-            Text("🎋")
-                .font(.system(size: 24))
+                .animation(.spring(response: 0.5), value: fill)
+            if available > 0 {
+                Text("\(available)")
+                    .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+            } else {
+                Text("🎋")
+                    .font(.system(size: 22))
+                    .opacity(0.55)
+            }
         }
+        .opacity(dimmed ? 0.55 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: dimmed)
     }
 }
 
