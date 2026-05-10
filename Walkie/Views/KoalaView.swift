@@ -22,6 +22,7 @@ struct KoalaView: View {
 
     @State private var feedStart: Date = .distantPast
     @State private var sparkleActive: Bool = false
+    @State private var blinkSquint: Double = 1.0
 
     var body: some View {
         Color.clear
@@ -33,7 +34,7 @@ struct KoalaView: View {
                         .scaleEffect(x: v.bodyScaleX, y: v.bodyScaleY, anchor: .center)
                         .offset(y: 52)
                     arms
-                    head(mouthOpen: v.mouthOpen, eyeSquint: v.eyeSquint)
+                    head(mouthOpen: v.mouthOpen, eyeSquint: min(v.eyeSquint, blinkSquint))
                         .scaleEffect(v.headScale, anchor: .center)
                         .offset(y: -40)
                     legs
@@ -132,6 +133,29 @@ struct KoalaView: View {
                     }
                 }
             }
+            .task(id: isAlive) {
+                guard isAlive else { return }
+                while !Task.isCancelled {
+                    let gap = Double.random(in: 2.8...5.2)
+                    try? await Task.sleep(for: .seconds(gap))
+                    if Task.isCancelled { return }
+                    let doubleBlink = Double.random(in: 0...1) < 0.2
+                    await blinkOnce()
+                    if doubleBlink {
+                        try? await Task.sleep(for: .milliseconds(140))
+                        if Task.isCancelled { return }
+                        await blinkOnce()
+                    }
+                }
+            }
+    }
+
+    @MainActor
+    private func blinkOnce() async {
+        withAnimation(.easeIn(duration: 0.07)) { blinkSquint = 0.05 }
+        try? await Task.sleep(for: .milliseconds(80))
+        withAnimation(.easeOut(duration: 0.10)) { blinkSquint = 1.0 }
+        try? await Task.sleep(for: .milliseconds(110))
     }
 
     // MARK: - Ears
