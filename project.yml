@@ -9,7 +9,7 @@ settings:
   base:
     SWIFT_VERSION: 5.9
     TARGETED_DEVICE_FAMILY: 1
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: 5US3HNY357
 
 targets:
   Walkie:
@@ -68,7 +68,7 @@ targets:
       - sdk: HealthKit.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.jonstuebe.Walkie
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonstuebe.petwalkie
         INFOPLIST_FILE: Walkie/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
