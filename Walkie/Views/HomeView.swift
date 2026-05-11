@@ -147,6 +147,8 @@ struct PetHomeView: View {
                 Button(action: performFeed) {
                     Label("Feed", systemImage: "leaf.fill")
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .foregroundStyle(canFeed ? .black : .white.opacity(0.5))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
