@@ -73,7 +73,6 @@ struct PetHomeView: View {
             .navigationTitle(pet.name)
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.clear, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .background(.clear)
     }
@@ -95,10 +94,10 @@ struct PetHomeView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Today's Steps")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
                 Text("\(manager.todaySteps)")
                     .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
             Spacer(minLength: 0)
             StepProgressRing(steps: manager.todaySteps, goal: stepGoal, color: tierColor(tier))
@@ -111,7 +110,7 @@ struct PetHomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -150,7 +149,7 @@ struct PetHomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -166,25 +165,25 @@ struct PetHomeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(primaryFeedLabel(canFeed: canFeed, isFull: isFull, available: available))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(canFeed ? .white : .white.opacity(0.6))
+                    .foregroundStyle(canFeed ? .primary : .secondary)
                 if let secondary = secondaryFeedLabel(canFeed: canFeed, isFull: isFull, stepsToNext: stepsToNext) {
                     Text(secondary)
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 8)
             Button(action: { performFeed() }) {
                 Text("Feed")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(canFeed ? .black : .white.opacity(0.35))
+                    .foregroundStyle(canFeed ? Color.white : .secondary)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
                     .background(
-                        Capsule().fill(canFeed ? Color.white : Color.white.opacity(0.08))
+                        Capsule().fill(canFeed ? Color.accentColor : Color.primary.opacity(0.06))
                     )
                     .overlay(
-                        Capsule().strokeBorder(.white.opacity(canFeed ? 0 : 0.12), lineWidth: 1)
+                        Capsule().strokeBorder(.primary.opacity(canFeed ? 0 : 0.08), lineWidth: 1)
                     )
             }
             .buttonStyle(FeedPillButtonStyle())
@@ -195,7 +194,7 @@ struct PetHomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -239,7 +238,7 @@ private struct BambooStockRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.12), lineWidth: 5)
+                .stroke(.primary.opacity(0.10), lineWidth: 5)
             Circle()
                 .trim(from: 0, to: fill)
                 .stroke(
@@ -254,7 +253,7 @@ private struct BambooStockRing: View {
             if available > 0 {
                 Text("\(available)")
                     .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             } else {
                 Text("🎋")
                     .font(.system(size: 22))
@@ -425,7 +424,7 @@ private struct StepProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.12), lineWidth: 6)
+                .stroke(.primary.opacity(0.10), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
@@ -444,7 +443,7 @@ private struct HealthBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.12))
+                Capsule().fill(.white.opacity(0.18))
                 Capsule()
                     .fill(barGradient)
                     .frame(width: max(6, geo.size.width * health))

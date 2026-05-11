@@ -1,5 +1,6 @@
 import SwiftData
 import Foundation
+import WidgetKit
 
 // Runs on a background ModelContext so HealthKit observer callbacks
 // can safely write to SwiftData without touching the main actor's context.
@@ -41,11 +42,29 @@ actor BackgroundPetUpdater {
             modelContext.insert(dead)
             modelContext.delete(pet)
             try? modelContext.save()
+            PetSnapshot.clear()
+            WidgetCenter.shared.reloadAllTimelines()
             NotificationService.shared.sendDeathNotification(petName: petName)
             return
         }
 
         try? modelContext.save()
+
+        let earned = BambooLedger.earned(steps: todaySteps, goal: goal)
+        let spent = pet.bambooLedgerDate < today ? 0 : pet.bambooSpentToday
+        let available = max(0, earned - spent)
+        let snapshot = PetSnapshot(
+            name: pet.name,
+            colorHex: pet.colorHex,
+            health: pet.health,
+            stepsToday: todaySteps,
+            stepGoal: goal,
+            bambooEarned: earned,
+            bambooAvailable: available,
+            updatedAt: Date()
+        )
+        snapshot.save()
+        WidgetCenter.shared.reloadAllTimelines()
 
         // Fire appropriate notification based on health level
         switch pet.healthState {

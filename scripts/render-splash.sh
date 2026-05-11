@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Renders the Walkie splash image by compiling the in-app KoalaView together
-# with the splash generator and running the result against the macOS
-# toolchain's SwiftUI ImageRenderer. Output lands in Assets.xcassets as
-# Splash.imageset.
+# Renders the Walkie launch image (the "walkie" wordmark on a solid
+# background) using the macOS toolchain's SwiftUI ImageRenderer. Output
+# lands in Assets.xcassets as Splash.imageset.
 
 set -euo pipefail
 
@@ -13,8 +12,7 @@ BIN="$OUT/walkie-splashgen"
 
 xcrun -sdk macosx swiftc \
   -O \
-  Walkie/Models/PetColor.swift \
-  Walkie/Views/KoalaView.swift \
+  -parse-as-library \
   scripts/generate_splash.swift \
   -o "$BIN"
 

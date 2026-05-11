@@ -29,7 +29,6 @@ struct GraveyardView: View {
             .navigationTitle("Graveyard")
             .background(.clear)
             .toolbarBackground(.clear, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .background(.clear)
     }
@@ -75,7 +74,7 @@ struct GraveyardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
         )
     }
 }
