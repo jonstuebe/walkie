@@ -54,30 +54,127 @@ struct PetHomeView: View {
     @AppStorage("stepGoal") private var stepGoal: Int = 10_000
     @State private var feedTrigger: Int = 0
 
+    private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
+    private var isFull: Bool { pet.health >= 1.0 }
+    private var canFeed: Bool { available > 0 && !isFull }
+    private var progress: Double {
+        guard stepGoal > 0 else { return 0 }
+        return min(1.0, Double(manager.todaySteps) / Double(stepGoal))
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    stepsCard
-                    petCard
-                    feedCard
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-                .padding(.bottom, 32)
+        ZStack(alignment: .topLeading) {
+            ForestBackdrop()
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
+                    .scaleEffect(0.95)
+                    .animation(.spring, value: pet.bodyScale)
+                Spacer(minLength: 0)
+                heroCard
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
             }
-            .refreshable {
-                await manager.refresh(pet: pet)
-            }
-            .background(.clear)
-            .navigationTitle(pet.name)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(.clear, for: .navigationBar)
+
+            refreshButton
+                .padding(.leading, 16)
+                .padding(.top, 8)
         }
-        .background(.clear)
+    }
+
+    private var refreshButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Task { await manager.refresh(pet: pet) }
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+                .rotationEffect(.degrees(manager.isLoading ? 360 : 0))
+                .animation(
+                    manager.isLoading
+                        ? .linear(duration: 0.9).repeatForever(autoreverses: false)
+                        : .default,
+                    value: manager.isLoading
+                )
+        }
+        .disabled(manager.isLoading)
+        .accessibilityLabel("Refresh")
+    }
+
+    private var heroCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(pet.name)
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(pet.healthState.color)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: pet.healthState.color.opacity(0.8), radius: 4)
+                    Text(pet.healthState.label)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("\(manager.todaySteps)")
+                        .font(.system(size: 20, weight: .heavy, design: .rounded).monospacedDigit())
+                    Text("/ \(stepGoal)")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .foregroundStyle(.white)
+
+                ProgressCapsule(progress: progress)
+                    .frame(height: 6)
+            }
+
+            HStack(spacing: 12) {
+                LeafStrip(available: available, max: 10)
+                Spacer(minLength: 4)
+                Button(action: performFeed) {
+                    Label("Feed", systemImage: "leaf.fill")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundStyle(canFeed ? .black : .white.opacity(0.5))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(canFeed
+                                ? AnyShapeStyle(LinearGradient(
+                                    colors: [Color(red: 0.7, green: 1.0, blue: 0.65), Color(red: 0.5, green: 0.9, blue: 0.55)],
+                                    startPoint: .top, endPoint: .bottom))
+                                : AnyShapeStyle(Color.white.opacity(0.10))
+                            )
+                        )
+                }
+                .buttonStyle(FeedPillButtonStyle())
+                .disabled(!canFeed)
+            }
+        }
+        .padding(18)
+        .background(.ultraThinMaterial.opacity(0.9))
+        .background(Color.black.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+        )
     }
 
     private func performFeed() {
+        guard canFeed else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         manager.feed(pet: pet, goal: stepGoal)
         feedTrigger += 1
@@ -87,181 +184,39 @@ struct PetHomeView: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
     }
+}
 
-    private var stepsCard: some View {
-        let tier = manager.healthKit.stepTier(for: manager.todaySteps, goal: stepGoal)
-        return HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Today's Steps")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text("\(manager.todaySteps)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+private struct LeafStrip: View {
+    var available: Int
+    var max: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<max, id: \.self) { idx in
+                Image(systemName: idx < available ? "leaf.fill" : "leaf")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(idx < available ? Color(red: 0.6, green: 0.95, blue: 0.6) : .white.opacity(0.25))
             }
-            Spacer(minLength: 0)
-            StepProgressRing(steps: manager.todaySteps, goal: stepGoal, color: tierColor(tier))
-                .frame(width: 60, height: 60)
-                .accessibilityLabel("Step goal progress")
-                .accessibilityValue("\(manager.todaySteps) of \(stepGoal) steps")
-        }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private var petCard: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                ForestBackdrop()
-                KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
-                    .animation(.spring, value: pet.bodyScale)
-                    .padding(.vertical, 12)
-            }
-            .frame(maxWidth: .infinity)
-
-            Divider()
-                .background(.white.opacity(0.1))
-
-            HStack(spacing: 12) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(pet.healthState.color)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: pet.healthState.color.opacity(0.8), radius: 4)
-                    Text(pet.healthState.label)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                Spacer()
-                HealthBar(health: pet.health)
-                    .frame(width: 120, height: 6)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(Color(red: 0.08, green: 0.10, blue: 0.09))
-        }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private var feedCard: some View {
-        let available = manager.bambooAvailable(for: pet, goal: stepGoal)
-        let isFull = pet.health >= 1.0
-        let stepsToNext = BambooLedger.stepsToNextBamboo(steps: manager.todaySteps, goal: stepGoal)
-        let canFeed = available > 0 && !isFull
-
-        return HStack(spacing: 16) {
-            BambooStockRing(available: available, dimmed: !canFeed)
-                .frame(width: 56, height: 56)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(primaryFeedLabel(canFeed: canFeed, isFull: isFull, available: available))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(canFeed ? .primary : .secondary)
-                if let secondary = secondaryFeedLabel(canFeed: canFeed, isFull: isFull, stepsToNext: stepsToNext) {
-                    Text(secondary)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            Button(action: { performFeed() }) {
-                Text("Feed")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(canFeed ? Color.white : .secondary)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule().fill(canFeed ? Color.accentColor : Color.primary.opacity(0.06))
-                    )
-                    .overlay(
-                        Capsule().strokeBorder(.primary.opacity(canFeed ? 0 : 0.08), lineWidth: 1)
-                    )
-            }
-            .buttonStyle(FeedPillButtonStyle())
-            .disabled(!canFeed)
-        }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private func primaryFeedLabel(canFeed: Bool, isFull: Bool, available: Int) -> String {
-        if isFull { return "Already full" }
-        if canFeed { return "\(available) bamboo ready" }
-        return "Walk to earn bamboo"
-    }
-
-    private func secondaryFeedLabel(canFeed: Bool, isFull: Bool, stepsToNext: Int) -> String? {
-        if isFull { return nil }
-        if canFeed { return "+10% health · \(formatted(stepsToNext)) to next 🎋" }
-        return "\(formatted(stepsToNext)) steps to next 🎋"
-    }
-
-    private func formatted(_ n: Int) -> String {
-        NumberFormatter.localizedString(from: NSNumber(value: n), number: .decimal)
-    }
-
-    private func tierColor(_ tier: StepTier) -> Color {
-        switch tier {
-        case .thriving: return .green
-        case .happy: return .yellow
-        case .surviving: return .orange
-        case .starving: return .red
         }
     }
 }
 
-// Ring shows bamboo banked for today, capped at 10 (one full health refill).
-// Center shows the count when > 0, the bamboo glyph as a placeholder otherwise.
-private struct BambooStockRing: View {
-    var available: Int
-    var dimmed: Bool
-
-    private var fill: CGFloat {
-        guard available > 0 else { return 0 }
-        return CGFloat(min(10, available)) / 10.0
-    }
+private struct ProgressCapsule: View {
+    var progress: Double
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(.primary.opacity(0.10), lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: fill)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color(red: 0.55, green: 0.85, blue: 0.55), Color(red: 0.30, green: 0.70, blue: 0.40)],
-                        startPoint: .top, endPoint: .bottom
-                    ),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.5), value: fill)
-            if available > 0 {
-                Text("\(available)")
-                    .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.primary)
-            } else {
-                Text("🎋")
-                    .font(.system(size: 22))
-                    .opacity(0.55)
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(.white.opacity(0.15))
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.95, blue: 0.6), Color(red: 0.35, green: 0.75, blue: 0.5)],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: Swift.max(6, geo.size.width * progress))
+                    .animation(.spring(response: 0.5), value: progress)
             }
         }
-        .opacity(dimmed ? 0.55 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: dimmed)
     }
 }
 
@@ -410,58 +365,3 @@ private struct BambooStalk: View {
     }
 }
 
-// MARK: - Progress bars
-
-private struct StepProgressRing: View {
-    var steps: Int
-    var goal: Int
-    var color: Color
-
-    private var progress: CGFloat {
-        min(1.0, CGFloat(steps) / CGFloat(max(goal, 1)))
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(.primary.opacity(0.10), lineWidth: 6)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.5), value: progress)
-            Image(systemName: "figure.walk")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(color)
-        }
-    }
-}
-
-private struct HealthBar: View {
-    var health: Double
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.18))
-                Capsule()
-                    .fill(barGradient)
-                    .frame(width: max(6, geo.size.width * health))
-                    .animation(.spring(response: 0.5), value: health)
-            }
-        }
-    }
-
-    private var barGradient: LinearGradient {
-        LinearGradient(colors: [barColor.opacity(0.8), barColor], startPoint: .leading, endPoint: .trailing)
-    }
-
-    private var barColor: Color {
-        switch health {
-        case 0.75...1.0: return .green
-        case 0.4..<0.75: return .yellow
-        case 0.15..<0.4: return .orange
-        default: return .red
-        }
-    }
-}
