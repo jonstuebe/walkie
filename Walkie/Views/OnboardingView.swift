@@ -91,14 +91,14 @@ private struct CustomizeScreen: View {
                         Text("Choose a color").font(.headline)
                             .padding(.horizontal, 24)
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 0) {
                                 ForEach(PetColor.allCases) { petColor in
                                     ColorSwatch(petColor: petColor, isSelected: selectedColor == petColor) {
                                         selectedColor = petColor
                                     }
                                 }
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                         }
                     }
                 }
@@ -130,14 +130,18 @@ private struct ColorSwatch: View {
     var onTap: () -> Void
 
     var body: some View {
-        Circle()
-            .fill(petColor.color)
-            .frame(width: 44, height: 44)
-            .overlay(
+        ZStack {
+            Circle()
+                .fill(petColor.color)
+                .frame(width: 48, height: 48)
+            if isSelected {
                 Circle()
-                    .stroke(isSelected ? Color.primary : Color.clear, lineWidth: 3)
-                    .padding(-4)
-            )
-            .onTapGesture(perform: onTap)
+                    .stroke(Color.primary, lineWidth: 3)
+                    .frame(width: 58, height: 58)
+            }
+        }
+        .frame(width: 64, height: 64)
+        .contentShape(Circle())
+        .onTapGesture(perform: onTap)
     }
 }

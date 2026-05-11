@@ -22,19 +22,27 @@ struct SettingsView: View {
 
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Color")
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(PetColor.allCases) { petColor in
-                                        ColorSwatch(
-                                            petColor: petColor,
-                                            isSelected: pet.colorHex == petColor.hex
-                                        ) {
-                                            pet.colorHex = petColor.hex
-                                            AppIconManager.sync(toColorHex: petColor.hex)
+                            ScrollViewReader { proxy in
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 0) {
+                                        ForEach(PetColor.allCases) { petColor in
+                                            ColorSwatch(
+                                                petColor: petColor,
+                                                isSelected: pet.colorHex == petColor.hex
+                                            ) {
+                                                pet.colorHex = petColor.hex
+                                                AppIconManager.sync(toColorHex: petColor.hex)
+                                            }
+                                            .id(petColor.hex)
                                         }
                                     }
+                                    .padding(.vertical, 4)
                                 }
-                                .padding(.vertical, 4)
+                                .onAppear {
+                                    DispatchQueue.main.async {
+                                        proxy.scrollTo(pet.colorHex, anchor: .center)
+                                    }
+                                }
                             }
                         }
                         .padding(.vertical, 4)
@@ -65,14 +73,18 @@ private struct ColorSwatch: View {
     var onTap: () -> Void
 
     var body: some View {
-        Circle()
-            .fill(petColor.color)
-            .frame(width: 44, height: 44)
-            .overlay(
+        ZStack {
+            Circle()
+                .fill(petColor.color)
+                .frame(width: 48, height: 48)
+            if isSelected {
                 Circle()
-                    .stroke(isSelected ? Color.primary : Color.clear, lineWidth: 3)
-                    .padding(-4)
-            )
-            .onTapGesture(perform: onTap)
+                    .stroke(Color.primary, lineWidth: 3)
+                    .frame(width: 58, height: 58)
+            }
+        }
+        .frame(width: 64, height: 64)
+        .contentShape(Circle())
+        .onTapGesture(perform: onTap)
     }
 }
