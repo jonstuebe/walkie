@@ -12,13 +12,10 @@ struct PetSnapshot: Codable, Equatable {
 
     var bodyScale: Double { 0.5 + (health * 0.5) }
 
-    var healthLabel: String {
-        switch health {
-        case 0.75...1.0: return "Thriving"
-        case 0.4..<0.75: return "Happy"
-        case 0.15..<0.4: return "Hungry"
-        default: return "Critical"
-        }
+    // 0...10 half-hearts (5 full hearts max, half-hearts allowed).
+    var halfHearts: Int {
+        let raw = (health * 10).rounded()
+        return max(0, min(10, Int(raw)))
     }
 
     static let placeholder = PetSnapshot(

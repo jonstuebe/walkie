@@ -114,15 +114,8 @@ struct PetHomeView: View {
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
                 Spacer()
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(pet.healthState.color)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: pet.healthState.color.opacity(0.8), radius: 4)
-                    Text(pet.healthState.label)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.9))
-                }
+                HeartRow(halfHearts: pet.halfHearts, size: 16, spacing: 3)
+                    .accessibilityLabel("Health: \(pet.halfHearts) of 10 half hearts")
             }
 
             VStack(alignment: .leading, spacing: 6) {
