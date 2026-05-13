@@ -52,7 +52,9 @@ struct PetHomeView: View {
     var manager: PetManager
 
     @AppStorage("stepGoal") private var stepGoal: Int = 10_000
+    @AppStorage("hasSeenTutorial") private var hasSeenTutorial: Bool = false
     @State private var feedTrigger: Int = 0
+    @State private var showTutorial: Bool = false
 
     private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
     private var isFull: Bool { pet.health >= 1.0 }
@@ -81,7 +83,38 @@ struct PetHomeView: View {
             refreshButton
                 .padding(.leading, 16)
                 .padding(.top, 8)
+
+            tutorialButton
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 16)
+                .padding(.top, 8)
         }
+        .sheet(isPresented: $showTutorial) {
+            TutorialSheet()
+        }
+        .task {
+            // Auto-open the tutorial once after first-install onboarding finishes.
+            // Delay past the splash (1.6s + 0.45s fade) so it doesn't race the fade-out.
+            guard !hasSeenTutorial else { return }
+            try? await Task.sleep(for: .milliseconds(2300))
+            hasSeenTutorial = true
+            showTutorial = true
+        }
+    }
+
+    private var tutorialButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showTutorial = true
+        } label: {
+            Image(systemName: "questionmark")
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        }
+        .accessibilityLabel("How it works")
     }
 
     private var refreshButton: some View {
