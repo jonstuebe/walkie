@@ -121,17 +121,13 @@ private struct MediumWidget: View {
                         .frame(height: 6)
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     StatPill(
                         icon: "leaf.fill",
                         value: "\(snapshot.bambooAvailable)",
                         tint: Color(red: 0.5, green: 0.9, blue: 0.6)
                     )
-                    StatPill(
-                        icon: "heart.fill",
-                        value: snapshot.healthLabel,
-                        tint: Color(red: 1.0, green: 0.6, blue: 0.6)
-                    )
+                    HeartRow(halfHearts: snapshot.halfHearts, size: 11, spacing: 1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

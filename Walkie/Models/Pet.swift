@@ -30,12 +30,20 @@ final class Pet {
         Color(hex: colorHex)
     }
 
+    // Maps the 0.0–1.0 health scalar onto a 5-heart scale, half-hearts allowed.
+    // 10 = 5 full hearts, 1 = half a heart, 0 = empty.
+    var halfHearts: Int {
+        let raw = (health * 10).rounded()
+        return Swift.max(0, Swift.min(10, Int(raw)))
+    }
+
+    // Used by background notifications to decide when to ping the user.
     var healthState: HealthState {
-        switch health {
-        case 0.75...1.0: return .thriving
-        case 0.4..<0.75: return .happy
-        case 0.15..<0.4: return .hungry
-        default: return .critical
+        switch halfHearts {
+        case 9...10: return .thriving
+        case 5...8:  return .happy
+        case 1...4:  return .hungry
+        default:     return .critical
         }
     }
 
@@ -46,24 +54,6 @@ final class Pet {
 
     enum HealthState {
         case thriving, happy, hungry, critical
-
-        var label: String {
-            switch self {
-            case .thriving: return "Thriving"
-            case .happy: return "Happy"
-            case .hungry: return "Hungry"
-            case .critical: return "Critical"
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .thriving: return .green
-            case .happy: return .yellow
-            case .hungry: return .orange
-            case .critical: return .red
-            }
-        }
     }
 }
 
