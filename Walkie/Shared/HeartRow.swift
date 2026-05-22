@@ -6,6 +6,7 @@ struct HeartRow: View {
     var size: CGFloat = 14
     var spacing: CGFloat = 2
     var color: Color = Color(red: 1.0, green: 0.42, blue: 0.45)
+    var emptyColor: Color = Color.white.opacity(0.5)
 
     @State private var shakeTrigger: CGFloat = 0
 
@@ -36,13 +37,19 @@ struct HeartRow: View {
         } else if filledHalves == 1 {
             ZStack {
                 Image(systemName: "heart")
-                    .foregroundStyle(color.opacity(0.35))
-                Image(systemName: "heart.lefthalf.filled")
+                    .foregroundStyle(emptyColor)
+                Image(systemName: "heart.fill")
                     .foregroundStyle(color)
+                    .mask {
+                        HStack(spacing: 0) {
+                            Rectangle()
+                            Rectangle().opacity(0)
+                        }
+                    }
             }
         } else {
             Image(systemName: "heart")
-                .foregroundStyle(color.opacity(0.35))
+                .foregroundStyle(emptyColor)
         }
     }
 }
