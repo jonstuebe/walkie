@@ -128,16 +128,5 @@ enum StepTier {
         }
     }
 
-    // Half-heart units per day. Hearts are 5 max (10 half-hearts == health 1.0),
-    // so one half-heart equals 0.1 of the underlying health scalar.
-    var healthDelta: Double {
-        switch self {
-        case .thriving:    return  0.2  // +1 full heart on a goal-met day
-        case .barelyAlive: return -0.1  // 50–99% of goal: slow decay
-        case .hungry:      return -0.2  // 25–49% of goal
-        case .starving:    return -0.3  // <25% of goal
-        }
-    }
-
     var canFeed: Bool { self != .starving }
 }
