@@ -57,6 +57,14 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+
+                Section {
+                    WakeSleepRows()
+                } header: {
+                    Text("Daily Schedule")
+                } footer: {
+                    Text("Heart loss is spread evenly across your waking hours.")
+                }
             }
             .navigationTitle("Settings")
             .scrollContentBackground(.hidden)

@@ -7,23 +7,24 @@ final class Pet {
     var colorHex: String
     var birthDate: Date
     var health: Double  // 0.0 (dead) to 1.0 (thriving)
-    var lastCheckedDate: Date
     var isAlive: Bool
     var totalStepsLifetime: Int
     // Bamboo ledger — daily reset; default to .distantPast so existing rows roll over on first read.
     var bambooSpentToday: Int = 0
     var bambooLedgerDate: Date = Date.distantPast
+    // Health tax bookkeeping — default to now so existing pets get a fresh start on update.
+    var lastTaxAppliedAt: Date = Date()
 
     init(name: String, colorHex: String) {
         self.name = name
         self.colorHex = colorHex
         self.birthDate = Date()
         self.health = 0.75
-        self.lastCheckedDate = Calendar.current.startOfDay(for: Date())
         self.isAlive = true
         self.totalStepsLifetime = 0
         self.bambooSpentToday = 0
         self.bambooLedgerDate = Calendar.current.startOfDay(for: Date())
+        self.lastTaxAppliedAt = Date()
     }
 
     var color: Color {

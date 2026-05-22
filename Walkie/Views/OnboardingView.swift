@@ -101,6 +101,18 @@ private struct CustomizeScreen: View {
                             .padding(.horizontal, 16)
                         }
                     }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Daily schedule").font(.headline)
+                        Text("Heart loss is spread evenly across your waking hours.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        VStack(spacing: 12) {
+                            WakeSleepRows()
+                        }
+                        .padding(.top, 4)
+                    }
+                    .padding(.horizontal, 24)
                 }
                 .padding(.vertical, 24)
             }

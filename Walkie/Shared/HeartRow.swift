@@ -6,6 +6,9 @@ struct HeartRow: View {
     var size: CGFloat = 14
     var spacing: CGFloat = 2
     var color: Color = Color(red: 1.0, green: 0.42, blue: 0.45)
+    var emptyColor: Color = Color.white.opacity(0.5)
+
+    @State private var shakeTrigger: CGFloat = 0
 
     var body: some View {
         HStack(spacing: spacing) {
@@ -15,6 +18,14 @@ struct HeartRow: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: halfHearts)
+        .modifier(HeartShake(animatableData: shakeTrigger))
+        .onChange(of: halfHearts) { oldValue, newValue in
+            if newValue < oldValue {
+                withAnimation(.linear(duration: 0.45)) {
+                    shakeTrigger += 1
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -26,14 +37,31 @@ struct HeartRow: View {
         } else if filledHalves == 1 {
             ZStack {
                 Image(systemName: "heart")
-                    .foregroundStyle(color.opacity(0.35))
-                Image(systemName: "heart.lefthalf.filled")
+                    .foregroundStyle(emptyColor)
+                Image(systemName: "heart.fill")
                     .foregroundStyle(color)
+                    .mask {
+                        HStack(spacing: 0) {
+                            Rectangle()
+                            Rectangle().opacity(0)
+                        }
+                    }
             }
         } else {
             Image(systemName: "heart")
-                .foregroundStyle(color.opacity(0.35))
+                .foregroundStyle(emptyColor)
         }
+    }
+}
+
+private struct HeartShake: GeometryEffect {
+    var amount: CGFloat = 4
+    var shakesPerUnit: CGFloat = 3
+    var animatableData: CGFloat
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        let dx = amount * sin(animatableData * .pi * 2 * shakesPerUnit)
+        return ProjectionTransform(CGAffineTransform(translationX: dx, y: 0))
     }
 }
 
