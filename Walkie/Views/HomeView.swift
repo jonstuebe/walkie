@@ -72,11 +72,11 @@ struct PetHomeView: View {
                 Ellipse()
                     .fill(RadialGradient(
                         colors: [Color.black.opacity(0.45), Color.black.opacity(0)],
-                        center: .center, startRadius: 2, endRadius: 80))
-                    .frame(width: 150, height: 26)
-                    .offset(y: -18)
+                        center: .center, startRadius: 2, endRadius: 95))
+                    .frame(width: 184, height: 30)
+                    .offset(y: -16)
                 KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
-                    .scaleEffect(0.95)
+                    .scaleEffect(1.24, anchor: .bottom)
                     .animation(.spring, value: pet.bodyScale)
             }
             Spacer(minLength: 0).frame(maxHeight: 120)
