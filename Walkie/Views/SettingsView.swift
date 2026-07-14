@@ -73,12 +73,14 @@ struct SettingsView: View {
 #if DEBUG
                 Section {
                     Button("Seed Graveyard (5 pets)") { seedGraveyard() }
+                    Button("Remove Duplicate Graves") { removeDuplicateGraves() }
+                        .disabled(duplicateGraves.isEmpty)
                     Button("Clear Graveyard", role: .destructive) { clearGraveyard() }
                         .disabled(graveyardPets.isEmpty)
                 } header: {
                     Text("Developer")
                 } footer: {
-                    Text("\(graveyardPets.count) pet(s) in the graveyard. DEBUG builds only.")
+                    Text("\(graveyardPets.count) pet(s) in the graveyard, \(duplicateGraves.count) duplicate(s). DEBUG builds only.")
                 }
 #endif
             }
@@ -119,6 +121,31 @@ struct SettingsView: View {
 
     private func clearGraveyard() {
         for pet in graveyardPets {
+            modelContext.delete(pet)
+        }
+        try? modelContext.save()
+    }
+
+    /// Graves left over from the old duplicate-grave bug. Two graves for the same
+    /// death share the dead pet's name, color, and (sub-second-precise) birthDate;
+    /// two genuinely-distinct pets essentially never do. `petID` can't be used —
+    /// pre-migration graves all share one backfilled default UUID.
+    ///
+    /// Keeps the earliest death for each identity; everything after is a duplicate.
+    private var duplicateGraves: [GraveyardPet] {
+        var seen = Set<String>()
+        var duplicates: [GraveyardPet] = []
+        for pet in graveyardPets.sorted(by: { $0.deathDate < $1.deathDate }) {
+            let key = "\(pet.name)|\(pet.colorHex)|\(pet.birthDate.timeIntervalSinceReferenceDate)"
+            if seen.insert(key).inserted == false {
+                duplicates.append(pet)
+            }
+        }
+        return duplicates
+    }
+
+    private func removeDuplicateGraves() {
+        for pet in duplicateGraves {
             modelContext.delete(pet)
         }
         try? modelContext.save()
