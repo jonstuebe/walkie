@@ -1,4 +1,9 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 enum PetColor: String, CaseIterable, Identifiable {
     case gray, brown, lavender, mint, peach, slate, sand, pink
@@ -30,9 +35,42 @@ enum PetColor: String, CaseIterable, Identifiable {
         case .pink: return "#E699B8"
         }
     }
+
+    /// Asset-catalog image name for the tinted koala illustration.
+    var koalaAsset: String { "Koala-\(rawValue)" }
+
+    /// Maps an arbitrary color back to the nearest palette entry. Pet colors
+    /// always originate from `hex`, so this resolves exactly for real pets and
+    /// degrades gracefully for ad-hoc colors (e.g. `.gray` in previews).
+    static func nearest(to color: Color) -> PetColor {
+        let target = color.rgbComponents
+        return allCases.min(by: { a, b in
+            Color(hex: a.hex).rgbComponents.distance(to: target)
+                < Color(hex: b.hex).rgbComponents.distance(to: target)
+        }) ?? .gray
+    }
+}
+
+struct RGB {
+    var r: Double, g: Double, b: Double
+    func distance(to o: RGB) -> Double {
+        let dr = r - o.r, dg = g - o.g, db = b - o.b
+        return dr * dr + dg * dg + db * db
+    }
 }
 
 extension Color {
+    var rgbComponents: RGB {
+        #if canImport(UIKit)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return RGB(r: Double(r), g: Double(g), b: Double(b))
+        #else
+        let ns = NSColor(self).usingColorSpace(.sRGB) ?? .gray
+        return RGB(r: Double(ns.redComponent), g: Double(ns.greenComponent), b: Double(ns.blueComponent))
+        #endif
+    }
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
