@@ -15,6 +15,10 @@ struct KoalaView: View {
     var bodyScale: Double  // 0.5 (starving) → 1.0 (thriving)
     var isAlive: Bool = true
     var feedingTrigger: Int = 0
+    /// WidgetKit renders a single static snapshot and does not run — or reliably
+    /// render — `keyframeAnimator`/`TimelineView` content. Widgets pass
+    /// `animated: false` to get a plain, always-visible koala.
+    var animated: Bool = true
 
     // Native footprint kept identical so existing layouts don't shift.
     private static let frameW: CGFloat = 186
@@ -33,21 +37,36 @@ struct KoalaView: View {
     @State private var wiggleScaleY: Double = 1.0
     @State private var wiggleTask: Task<Void, Never>?
 
+    /// The koala illustration with health scale + grayscale/opacity applied.
+    /// Shared by the animated (app) and static (widget) paths.
+    private var koalaImage: some View {
+        Image(petColor.koalaAsset)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
+            .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
+            .scaleEffect(healthScale, anchor: .bottom)
+            .grayscale(isAlive ? 0 : 1)
+            .opacity(isAlive ? 1 : 0.55)
+    }
+
     var body: some View {
+        if animated {
+            animatedBody
+        } else {
+            koalaImage
+                .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
+        }
+    }
+
+    private var animatedBody: some View {
         Color.clear
             .frame(width: Self.frameW, height: Self.frameH)
             .keyframeAnimator(initialValue: FeedAnim(), trigger: feedingTrigger) { _, v in
                 ZStack(alignment: .bottom) {
-                    Image(petColor.koalaAsset)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFit()
-                        .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
-                        .scaleEffect(healthScale, anchor: .bottom)
+                    koalaImage
                         .scaleEffect(x: v.squashX, y: v.squashY, anchor: .bottom)
                         .offset(y: v.hopY)
-                        .grayscale(isAlive ? 0 : 1)
-                        .opacity(isAlive ? 1 : 0.55)
                         .animation(.spring(response: 0.55, dampingFraction: 0.72), value: bodyScale)
 
                     if sparkleActive {

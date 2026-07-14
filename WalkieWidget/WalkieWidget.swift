@@ -63,7 +63,8 @@ private struct SmallWidget: View {
         VStack(spacing: 4) {
             KoalaView(
                 color: Color(hex: snapshot.colorHex),
-                bodyScale: snapshot.bodyScale
+                bodyScale: snapshot.bodyScale,
+                animated: false
             )
             .scaleEffect(0.46)
             .frame(height: 100)
@@ -94,7 +95,8 @@ private struct MediumWidget: View {
         HStack(spacing: 12) {
             KoalaView(
                 color: Color(hex: snapshot.colorHex),
-                bodyScale: snapshot.bodyScale
+                bodyScale: snapshot.bodyScale,
+                animated: false
             )
             .scaleEffect(0.52)
             .frame(width: 110, height: 130)
