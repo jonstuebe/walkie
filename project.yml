@@ -82,6 +82,18 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
 
+  WalkieTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WalkieTests
+    dependencies:
+      - target: Walkie
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonstuebe.petwalkie.tests
+        GENERATE_INFOPLIST_FILE: YES
+
   WalkieWidgetExtension:
     type: app-extension
     platform: iOS
@@ -107,3 +119,33 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.jonstuebe.petwalkie.WalkieWidgetExtension
         INFOPLIST_FILE: WalkieWidget/Info.plist
         TARGETED_DEVICE_FAMILY: 1
+
+schemes:
+  Walkie:
+    build:
+      targets:
+        Walkie: all
+        WalkieTests: [test]
+    test:
+      targets:
+        - WalkieTests
+      gatherCoverageData: false
+    run:
+      config: Debug
+    profile:
+      config: Release
+    archive:
+      config: Release
+
+  # Runs the optimized Release build on device — pick this from the scheme
+  # dropdown to test the production build without touching the Debug scheme.
+  Walkie-Release:
+    build:
+      targets:
+        Walkie: all
+    run:
+      config: Release
+    profile:
+      config: Release
+    archive:
+      config: Release

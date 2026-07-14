@@ -2,8 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(HealthKitService.self) private var healthKit
+    @Environment(\.petLifecycle) private var lifecycle
     @Query private var pets: [Pet]
     @State private var petManager: PetManager?
     @State private var tab: Tab = .home
@@ -31,11 +31,10 @@ struct HomeView: View {
             .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         }
         .task {
-            let manager = PetManager(modelContext: modelContext, healthKit: healthKit)
+            guard let lifecycle else { return }
+            let manager = petManager ?? PetManager(lifecycle: lifecycle, healthKit: healthKit)
             petManager = manager
-            if let pet = pets.first {
-                await manager.refresh(pet: pet)
-            }
+            await manager.refresh()
         }
     }
 
@@ -56,7 +55,7 @@ struct PetHomeView: View {
     @State private var feedTrigger: Int = 0
     @State private var showTutorial: Bool = false
 
-    private var available: Int { manager.bambooAvailable(for: pet, goal: stepGoal) }
+    private var available: Int { manager.leavesAvailable(for: pet, goal: stepGoal) }
     private var isFull: Bool { pet.health >= 1.0 }
     private var canFeed: Bool { available > 0 && !isFull }
     private var progress: Double {
@@ -120,7 +119,7 @@ struct PetHomeView: View {
     private var refreshButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            Task { await manager.refresh(pet: pet) }
+            Task { await manager.refresh() }
         } label: {
             Image(systemName: "arrow.clockwise")
                 .font(.system(size: 14, weight: .heavy))
@@ -204,10 +203,10 @@ struct PetHomeView: View {
     private func performFeed() {
         guard canFeed else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        manager.feed(pet: pet, goal: stepGoal)
+        manager.feed(goal: stepGoal)
         feedTrigger += 1
         Task { @MainActor in
-            // Bite-impact haptic lands when the bamboo reaches the mouth (~0.4s into keyframes).
+            // Bite-impact haptic lands when the leaf reaches the mouth (~0.4s into keyframes).
             try? await Task.sleep(for: .milliseconds(400))
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }

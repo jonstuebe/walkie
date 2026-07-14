@@ -1,5 +1,4 @@
 import HealthKit
-import SwiftData
 import Foundation
 
 @Observable
@@ -31,18 +30,26 @@ final class HealthKitService {
         }
     }
 
+    // The daily step goal, falling back to 10k when unset. Matches the
+    // @AppStorage("stepGoal") default the views use.
+    static var stepGoal: Int {
+        let stored = UserDefaults.standard.integer(forKey: "stepGoal")
+        return stored > 0 ? stored : 10_000
+    }
+
     // Registers a long-lived HKObserverQuery. HealthKit will wake the app
     // in the background whenever new step data is available and call this handler.
     // The completionHandler MUST be called or iOS will throttle future deliveries.
-    func startObserving(container: ModelContainer) {
+    // All writes route through the shared PetLifecycle actor, so the background
+    // sweep can't race the foreground into a duplicate grave.
+    func startObserving(lifecycle: PetLifecycle) {
         if let existing = observerQuery { store.stop(existing) }
 
         let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completionHandler, error in
             guard let self, error == nil else { completionHandler(); return }
             Task {
                 let steps = await self.stepsToday()
-                let updater = BackgroundPetUpdater(modelContainer: container)
-                await updater.update(todaySteps: steps, healthKit: self)
+                _ = await lifecycle.applyElapsed(steps: steps, goal: Self.stepGoal)
                 completionHandler()
             }
         }
@@ -93,25 +100,30 @@ final class HealthKitService {
     }
 }
 
-// Bamboo ledger: linear earning at 1 bamboo per 10% of the daily step goal.
-// Hitting goal earns enough bamboo (10) to fully restore an empty koala.
+// Leaf ledger: linear earning at 1 leaf per 10% of the daily step goal.
+// Hitting goal earns enough leaves (10) to fully restore an empty koala.
 // Walking past goal keeps earning at the same rate. No hard cap — feeds gate
-// on health < 100%, so excess bamboo simply goes unused for the day.
-enum BambooLedger {
-    /// Step interval that awards 1 bamboo (== goal / 10).
-    static func stepsPerBamboo(goal: Int) -> Int {
+// on health < 100%, so excess leaves simply go unused for the day.
+enum LeafLedger {
+    /// Step interval that awards 1 leaf (== goal / 10).
+    static func stepsPerLeaf(goal: Int) -> Int {
         max(1, goal / 10)
     }
 
-    /// Total bamboo earned today for the given step count.
+    /// Total leaves earned today for the given step count.
     static func earned(steps: Int, goal: Int) -> Int {
         guard goal > 0 else { return 0 }
-        return steps / stepsPerBamboo(goal: goal)
+        return steps / stepsPerLeaf(goal: goal)
     }
 
-    /// Steps remaining until the next bamboo unlocks.
-    static func stepsToNextBamboo(steps: Int, goal: Int) -> Int {
-        let stride = stepsPerBamboo(goal: goal)
+    /// Leaves still available to spend: earned today minus what's been spent.
+    static func available(steps: Int, goal: Int, spent: Int) -> Int {
+        max(0, earned(steps: steps, goal: goal) - spent)
+    }
+
+    /// Steps remaining until the next leaf unlocks.
+    static func stepsToNextLeaf(steps: Int, goal: Int) -> Int {
+        let stride = stepsPerLeaf(goal: goal)
         return stride - (steps % stride)
     }
 }

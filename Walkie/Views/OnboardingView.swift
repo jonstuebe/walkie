@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct OnboardingView: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.petLifecycle) private var lifecycle
     @State private var petName = ""
     @State private var selectedColor: PetColor = .gray
     @State private var step: OnboardingStep = .welcome
@@ -27,10 +27,11 @@ struct OnboardingView: View {
     }
 
     private func createPet() {
-        guard !petName.isEmpty else { return }
-        let pet = Pet(name: petName, colorHex: selectedColor.hex)
-        modelContext.insert(pet)
-        AppIconManager.sync(toColorHex: pet.colorHex)
+        guard !petName.isEmpty, let lifecycle else { return }
+        let name = petName
+        let colorHex = selectedColor.hex
+        // hatch fans out the app-icon sync + reminder scheduling via LifecycleEffects.
+        Task { await lifecycle.hatch(name: name, colorHex: colorHex) }
         step = .done
     }
 }

@@ -72,7 +72,7 @@ private struct SmallWidget: View {
                 Text(snapshot.stepsToday, format: .number)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
-                Label("\(snapshot.bambooAvailable)", systemImage: "leaf.fill")
+                Label("\(snapshot.leavesAvailable)", systemImage: "leaf.fill")
                     .labelStyle(.titleAndIcon)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color(red: 0.65, green: 0.95, blue: 0.7))
@@ -124,7 +124,7 @@ private struct MediumWidget: View {
                 HStack(spacing: 10) {
                     StatPill(
                         icon: "leaf.fill",
-                        value: "\(snapshot.bambooAvailable)",
+                        value: "\(snapshot.leavesAvailable)",
                         tint: Color(red: 0.5, green: 0.9, blue: 0.6)
                     )
                     HeartRow(halfHearts: snapshot.halfHearts, size: 11, spacing: 1)

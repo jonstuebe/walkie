@@ -3,32 +3,39 @@ import SwiftUI
 
 @Model
 final class Pet {
+    // Stable identity that survives into the graveyard, so a death is recorded at most once.
+    var id: UUID = UUID()
     var name: String
     var colorHex: String
     var birthDate: Date
     var health: Double  // 0.0 (dead) to 1.0 (thriving)
-    var isAlive: Bool
     var totalStepsLifetime: Int
-    // Bamboo ledger — daily reset; default to .distantPast so existing rows roll over on first read.
-    var bambooSpentToday: Int = 0
-    var bambooLedgerDate: Date = Date.distantPast
+    // Leaf ledger — daily reset; default to .distantPast so existing rows roll over on first read.
+    var leavesSpentToday: Int = 0
+    var leavesLedgerDate: Date = Date.distantPast
     // Health tax bookkeeping — default to now so existing pets get a fresh start on update.
     var lastTaxAppliedAt: Date = Date()
 
     init(name: String, colorHex: String) {
+        self.id = UUID()
         self.name = name
         self.colorHex = colorHex
         self.birthDate = Date()
         self.health = 0.75
-        self.isAlive = true
         self.totalStepsLifetime = 0
-        self.bambooSpentToday = 0
-        self.bambooLedgerDate = Calendar.current.startOfDay(for: Date())
+        self.leavesSpentToday = 0
+        self.leavesLedgerDate = Calendar.current.startOfDay(for: Date())
         self.lastTaxAppliedAt = Date()
     }
 
     var color: Color {
         Color(hex: colorHex)
+    }
+
+    /// Leaves spent today, accounting for the daily rollover. Zero once the ledger date is stale.
+    func leavesSpent(asOf now: Date = Date()) -> Int {
+        let today = Calendar.current.startOfDay(for: now)
+        return leavesLedgerDate < today ? 0 : leavesSpentToday
     }
 
     // Maps the 0.0–1.0 health scalar onto a 5-heart scale, half-hearts allowed.
@@ -60,6 +67,10 @@ final class Pet {
 
 @Model
 final class GraveyardPet {
+    // The dead pet's stable id, so a grave can be traced back to its pet.
+    // (Not a unique constraint — SwiftData can't add one via lightweight
+    // migration, and the single-writer PetLifecycle already prevents duplicates.)
+    var petID: UUID = UUID()
     var name: String
     var colorHex: String
     var birthDate: Date
@@ -68,6 +79,7 @@ final class GraveyardPet {
     var daysLived: Int
 
     init(from pet: Pet) {
+        self.petID = pet.id
         self.name = pet.name
         self.colorHex = pet.colorHex
         self.birthDate = pet.birthDate
@@ -79,6 +91,7 @@ final class GraveyardPet {
 #if DEBUG
     // Memberwise init used only for seeding sample graveyard data during development.
     init(name: String, colorHex: String, birthDate: Date, deathDate: Date, totalStepsLifetime: Int, daysLived: Int) {
+        self.petID = UUID()
         self.name = name
         self.colorHex = colorHex
         self.birthDate = birthDate

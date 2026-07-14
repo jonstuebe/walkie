@@ -49,10 +49,10 @@ struct KoalaView: View {
                             .allowsHitTesting(false)
                     }
 
-                    BambooFlight(
-                        opacity: v.bambooOpacity,
-                        scale: v.bambooScale,
-                        translation: v.bambooY
+                    LeafFlight(
+                        opacity: v.leafOpacity,
+                        scale: v.leafScale,
+                        translation: v.leafY
                     )
                     .offset(y: Self.mouthY)
                     .allowsHitTesting(false)
@@ -62,27 +62,27 @@ struct KoalaView: View {
                 .opacity(isAlive ? 1 : 0.55)
                 .animation(.spring(response: 0.55, dampingFraction: 0.72), value: bodyScale)
             } keyframes: { _ in
-                // Bamboo: fly from below to mouth (0 → 0.4s), then get consumed (0.4 → 0.45s)
-                KeyframeTrack(\.bambooY) {
+                // Leaf: fly from below to mouth (0 → 0.4s), then get consumed (0.4 → 0.45s)
+                KeyframeTrack(\.leafY) {
                     LinearKeyframe(140, duration: 0.0)
                     CubicKeyframe(0,   duration: 0.40)
                     LinearKeyframe(0,  duration: 0.60)
                 }
-                KeyframeTrack(\.bambooOpacity) {
+                KeyframeTrack(\.leafOpacity) {
                     LinearKeyframe(0, duration: 0.0)
                     LinearKeyframe(1, duration: 0.06)
                     LinearKeyframe(1, duration: 0.34)
                     LinearKeyframe(0, duration: 0.05)
                     LinearKeyframe(0, duration: 0.55)
                 }
-                KeyframeTrack(\.bambooScale) {
+                KeyframeTrack(\.leafScale) {
                     LinearKeyframe(1.4, duration: 0.0)
                     CubicKeyframe(0.55, duration: 0.40)
                     CubicKeyframe(0.0,  duration: 0.05)
                     LinearKeyframe(0.0, duration: 0.55)
                 }
 
-                // Mouth chews three times after bamboo arrives
+                // Mouth chews three times after the leaf arrives
                 KeyframeTrack(\.mouthOpen) {
                     LinearKeyframe(0.0, duration: 0.40)
                     SpringKeyframe(1.0, duration: 0.10)
@@ -418,9 +418,9 @@ struct KoalaView: View {
 // MARK: - Feed animation values
 
 private struct FeedAnim {
-    var bambooY: Double = 0
-    var bambooOpacity: Double = 0
-    var bambooScale: Double = 1
+    var leafY: Double = 0
+    var leafOpacity: Double = 0
+    var leafScale: Double = 1
     var headScale: Double = 1
     var bodyScaleX: Double = 1
     var bodyScaleY: Double = 1
@@ -428,15 +428,15 @@ private struct FeedAnim {
     var eyeSquint: Double = 1
 }
 
-// MARK: - Bamboo flight
+// MARK: - Leaf flight
 
-private struct BambooFlight: View {
+private struct LeafFlight: View {
     var opacity: Double
     var scale: Double
     var translation: Double  // vertical offset added to mouth position
 
     var body: some View {
-        Text("🎋")
+        Text("🍃")
             .font(.system(size: 44))
             .rotationEffect(.degrees(-12))
             .scaleEffect(max(0.0001, scale))

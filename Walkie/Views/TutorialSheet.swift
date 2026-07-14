@@ -68,7 +68,7 @@ struct TutorialSheet: View {
         switch page {
         case .hearts:
             AnimatedHeartRow(targetHalfHearts: 10, size: 30, spacing: 6)
-        case .bamboo:
+        case .leaves:
             AnimatedLeafStrip(targetFilled: 10, total: 10)
         }
     }
@@ -84,12 +84,12 @@ struct TutorialSheet: View {
 }
 
 private enum TutorialPage: Int, CaseIterable {
-    case hearts, bamboo
+    case hearts, leaves
 
     var title: String {
         switch self {
         case .hearts: return "Hearts are health"
-        case .bamboo: return "Bamboo feeds the koala"
+        case .leaves: return "Leaves feed the koala"
         }
     }
 
@@ -97,8 +97,8 @@ private enum TutorialPage: Int, CaseIterable {
         switch self {
         case .hearts:
             return "Five hearts, half-hearts allowed. Hit your step goal to gain a full heart. Falling short slowly drains them — zero hearts and your koala is gone."
-        case .bamboo:
-            return "Each leaf is one bamboo, earned every 10% of your daily goal. Spend them on Feed to add a half-heart at a time. Unspent bamboo resets at midnight."
+        case .leaves:
+            return "Each leaf is earned every 10% of your daily goal. Spend them on Feed to add a half-heart at a time. Unspent leaves reset at midnight."
         }
     }
 }
