@@ -76,7 +76,7 @@ final class NotificationService: Sendable {
             identifier: "walk.reminder.midday",
             hour: 12, minute: 30,
             titleTemplate: "Stretch break with %@?",
-            bodyTemplate: "A lunchtime loop will earn %@ a bite of bamboo."
+            bodyTemplate: "A lunchtime loop will earn %@ a fresh leaf."
         ),
         .init(
             identifier: "walk.reminder.afternoon",

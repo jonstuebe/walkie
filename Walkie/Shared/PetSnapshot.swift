@@ -6,8 +6,8 @@ struct PetSnapshot: Codable, Equatable {
     var health: Double
     var stepsToday: Int
     var stepGoal: Int
-    var bambooEarned: Int
-    var bambooAvailable: Int
+    var leavesEarned: Int
+    var leavesAvailable: Int
     var updatedAt: Date
 
     var bodyScale: Double { 0.5 + (health * 0.5) }
@@ -24,8 +24,8 @@ struct PetSnapshot: Codable, Equatable {
         health: 0.85,
         stepsToday: 6_842,
         stepGoal: 10_000,
-        bambooEarned: 6,
-        bambooAvailable: 4,
+        leavesEarned: 6,
+        leavesAvailable: 4,
         updatedAt: Date()
     )
 

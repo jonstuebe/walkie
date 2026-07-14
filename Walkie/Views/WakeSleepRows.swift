@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct WakeSleepRows: View {
-    @AppStorage(Pet.taxKeyWake) private var wakeMinutes: Int = Pet.taxDefaultWake
-    @AppStorage(Pet.taxKeySleep) private var sleepMinutes: Int = Pet.taxDefaultSleep
+    @AppStorage(TaxSchedule.taxKeyWake) private var wakeMinutes: Int = TaxSchedule.taxDefaultWake
+    @AppStorage(TaxSchedule.taxKeySleep) private var sleepMinutes: Int = TaxSchedule.taxDefaultSleep
 
     var body: some View {
         Group {
