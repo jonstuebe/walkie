@@ -63,21 +63,35 @@ struct PetHomeView: View {
         return min(1.0, Double(manager.todaySteps) / Double(stepGoal))
     }
 
+    private var foreground: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            ZStack(alignment: .bottom) {
+                // Contact shadow anchored to the koala's feet so it reads as
+                // standing on the ground rather than floating.
+                Ellipse()
+                    .fill(RadialGradient(
+                        colors: [Color.black.opacity(0.45), Color.black.opacity(0)],
+                        center: .center, startRadius: 2, endRadius: 80))
+                    .frame(width: 150, height: 26)
+                    .offset(y: -18)
+                KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
+                    .scaleEffect(0.95)
+                    .animation(.spring, value: pet.bodyScale)
+            }
+            Spacer(minLength: 0).frame(maxHeight: 120)
+            heroCard
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             ForestBackdrop()
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                KoalaView(color: pet.color, bodyScale: pet.bodyScale, feedingTrigger: feedTrigger)
-                    .scaleEffect(0.95)
-                    .animation(.spring, value: pet.bodyScale)
-                Spacer(minLength: 0)
-                heroCard
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-            }
+            foreground
 
             refreshButton
                 .padding(.leading, 16)
@@ -326,10 +340,10 @@ struct ForestBackdrop: View {
     }
 
     private func forestFloor(width w: CGFloat, height h: CGFloat) -> some View {
-        let leftY  = h * 1.04
-        let rightY = h * 1.06
-        let crestY = h * 0.66
-        let crestX = w * 0.55
+        let leftY  = h * 0.70
+        let rightY = h * 0.72
+        let crestY = h * 0.55
+        let crestX = w * 0.50
         let floorBottom = h + 200
 
         return Path { p in
