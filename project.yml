@@ -136,3 +136,16 @@ schemes:
       config: Release
     archive:
       config: Release
+
+  # Runs the optimized Release build on device — pick this from the scheme
+  # dropdown to test the production build without touching the Debug scheme.
+  Walkie-Release:
+    build:
+      targets:
+        Walkie: all
+    run:
+      config: Release
+    profile:
+      config: Release
+    archive:
+      config: Release
