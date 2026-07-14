@@ -38,13 +38,14 @@ struct KoalaView: View {
     @State private var wiggleTask: Task<Void, Never>?
 
     /// The koala illustration with health scale + grayscale/opacity applied.
-    /// Shared by the animated (app) and static (widget) paths.
+    /// Shared by the animated (app) and static (widget) paths. The frame is
+    /// applied per-path: the app anchors the koala to the bottom (the ground),
+    /// widgets center it so it aligns with neighbouring content.
     private var koalaImage: some View {
         Image(petColor.koalaAsset)
             .resizable()
             .interpolation(.high)
             .scaledToFit()
-            .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
             .scaleEffect(healthScale, anchor: .bottom)
             .grayscale(isAlive ? 0 : 1)
             .opacity(isAlive ? 1 : 0.55)
@@ -55,7 +56,7 @@ struct KoalaView: View {
             animatedBody
         } else {
             koalaImage
-                .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
+                .frame(width: Self.frameW, height: Self.frameH)
         }
     }
 
@@ -65,6 +66,7 @@ struct KoalaView: View {
             .keyframeAnimator(initialValue: FeedAnim(), trigger: feedingTrigger) { _, v in
                 ZStack(alignment: .bottom) {
                     koalaImage
+                        .frame(width: Self.frameW, height: Self.frameH, alignment: .bottom)
                         .scaleEffect(x: v.squashX, y: v.squashY, anchor: .bottom)
                         .offset(y: v.hopY)
                         .animation(.spring(response: 0.55, dampingFraction: 0.72), value: bodyScale)
