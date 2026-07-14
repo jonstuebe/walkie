@@ -1,15 +1,15 @@
 # Walkie
 
-A virtual koala pet for iOS that you keep alive by walking. Your daily step count earns bamboo; bamboo feeds your koala; an unfed koala gets hungry and eventually wanders off to the graveyard.
+A virtual koala pet for iOS that you keep alive by walking. Your daily step count earns leaves; leaves feed your koala; an unfed koala gets hungry and eventually wanders off to the graveyard.
 
 Built with SwiftUI, SwiftData, HealthKit, WidgetKit, and a hand-drawn koala that lives entirely in SwiftUI shapes — no image assets for the character.
 
 ## Features
 
-- **Step-driven feeding loop.** HealthKit step counts roll into a daily bamboo ledger (1 bamboo per 10% of your goal). Feed the koala to top up its health; skip too many days and it dies and joins the graveyard.
+- **Step-driven feeding loop.** HealthKit step counts roll into a daily leaf ledger (1 leaf per 10% of your goal). Feed the koala to top up its health; skip too many days and it dies and joins the graveyard.
 - **Background health updates.** A long-lived `HKObserverQuery` wakes the app when new step data arrives, processes any missed days on a background `ModelContext`, and fires hunger/critical notifications.
 - **Daily walk nudges.** Scheduled local notifications between 9am and 6pm with friendly copy.
-- **Home screen widget.** Small and medium families showing the koala, today's steps, bamboo stock, and health. The app writes a `PetSnapshot` to a shared App Group; the widget reads it on each timeline refresh.
+- **Home screen widget.** Small and medium families showing the koala, today's steps, leaf stock, and health. The app writes a `PetSnapshot` to a shared App Group; the widget reads it on each timeline refresh.
 - **Themed app icons.** Picking a koala color also switches the app icon to match.
 - **Animated koala.** Idle blinks, tap-to-wiggle, eating animation with sparkle burst on feed.
 
@@ -22,7 +22,7 @@ Walkie/
     Pet.swift               @Model Pet + GraveyardPet
     PetColor.swift          Palette + Color(hex:) helper
   Services/
-    HealthKitService.swift  Step queries, observer, bamboo ledger
+    HealthKitService.swift  Step queries, observer, leaf ledger
     PetManager.swift        Foreground refresh + feed actions; writes snapshots
     BackgroundPetUpdater.swift  HK-observer-driven background updates
     NotificationService.swift   Permission, daily reminders, hunger pings
@@ -97,11 +97,11 @@ The widget can't query HealthKit on its own, so the app pushes a snapshot whenev
 
 If you ever need to extend the widget to show more fields, add them to `PetSnapshot` and the writers in `PetManager` / `BackgroundPetUpdater`.
 
-## Bamboo ledger
+## Leaf ledger
 
 Defined in `HealthKitService.swift`:
 
-- 1 bamboo unlocks every `goal / 10` steps (so a 10k goal = 1k steps per bamboo).
-- Bamboo is consumed by feeding (each feed = +0.1 health, max 1.0).
-- Bamboo is "earned − spent" for the day. Excess is unused; there's no carry-over.
-- Hitting your goal earns enough bamboo (10) to fully refill an empty koala.
+- 1 leaf unlocks every `goal / 10` steps (so a 10k goal = 1k steps per leaf).
+- Leaves are consumed by feeding (each feed = +0.1 health, max 1.0).
+- Leaves are "earned − spent" for the day. Excess is unused; there's no carry-over.
+- Hitting your goal earns enough leaves (10) to fully refill an empty koala.
