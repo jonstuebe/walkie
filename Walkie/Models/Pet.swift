@@ -76,6 +76,18 @@ final class GraveyardPet {
         self.daysLived = Calendar.current.dateComponents([.day], from: pet.birthDate, to: Date()).day ?? 0
     }
 
+#if DEBUG
+    // Memberwise init used only for seeding sample graveyard data during development.
+    init(name: String, colorHex: String, birthDate: Date, deathDate: Date, totalStepsLifetime: Int, daysLived: Int) {
+        self.name = name
+        self.colorHex = colorHex
+        self.birthDate = birthDate
+        self.deathDate = deathDate
+        self.totalStepsLifetime = totalStepsLifetime
+        self.daysLived = daysLived
+    }
+#endif
+
     var color: Color {
         Color(hex: colorHex)
     }

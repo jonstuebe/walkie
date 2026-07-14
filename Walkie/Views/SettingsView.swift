@@ -4,6 +4,10 @@ import SwiftData
 struct SettingsView: View {
     @AppStorage("stepGoal") private var stepGoal: Int = 10_000
     @Query private var pets: [Pet]
+#if DEBUG
+    @Environment(\.modelContext) private var modelContext
+    @Query private var graveyardPets: [GraveyardPet]
+#endif
 
     var body: some View {
         NavigationStack {
@@ -65,6 +69,18 @@ struct SettingsView: View {
                 } footer: {
                     Text("Heart loss is spread evenly across your waking hours.")
                 }
+
+#if DEBUG
+                Section {
+                    Button("Seed Graveyard (5 pets)") { seedGraveyard() }
+                    Button("Clear Graveyard", role: .destructive) { clearGraveyard() }
+                        .disabled(graveyardPets.isEmpty)
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("\(graveyardPets.count) pet(s) in the graveyard. DEBUG builds only.")
+                }
+#endif
             }
             .navigationTitle("Settings")
             .scrollContentBackground(.hidden)
@@ -73,6 +89,41 @@ struct SettingsView: View {
         }
         .background(.clear)
     }
+
+#if DEBUG
+    private func seedGraveyard() {
+        let cal = Calendar.current
+        let now = Date()
+        // name, color, daysLived, totalSteps, daysAgoDied
+        let samples: [(String, PetColor, Int, Int, Int)] = [
+            ("Eucalyptus", .gray,     42, 387_204, 1),
+            ("Mochi",      .brown,    17, 142_880, 3),
+            ("Waffles",    .mint,      8,  61_150, 9),
+            ("Biscuit",    .lavender, 63, 512_990, 21),
+            ("Pip",        .peach,     3,  19_400, 60),
+        ]
+        for (name, petColor, daysLived, steps, diedDaysAgo) in samples {
+            let deathDate = cal.date(byAdding: .day, value: -diedDaysAgo, to: now) ?? now
+            let birthDate = cal.date(byAdding: .day, value: -daysLived, to: deathDate) ?? deathDate
+            modelContext.insert(GraveyardPet(
+                name: name,
+                colorHex: petColor.hex,
+                birthDate: birthDate,
+                deathDate: deathDate,
+                totalStepsLifetime: steps,
+                daysLived: daysLived
+            ))
+        }
+        try? modelContext.save()
+    }
+
+    private func clearGraveyard() {
+        for pet in graveyardPets {
+            modelContext.delete(pet)
+        }
+        try? modelContext.save()
+    }
+#endif
 }
 
 private struct ColorSwatch: View {
