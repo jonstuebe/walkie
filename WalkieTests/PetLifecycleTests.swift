@@ -130,4 +130,97 @@ final class PetLifecycleTests: XCTestCase {
         XCTAssertEqual(pet.leavesSpentToday, 0)
         XCTAssertEqual(pet.health, 0.75, accuracy: 0.0001)
     }
+
+    // MARK: - Auto-feeding
+
+    // A fixed summer day (no DST shift) at a given time.
+    private func day(_ hour: Int, _ minute: Int = 0, dayOffset: Int = 0) -> Date {
+        let cal = Calendar.current
+        let base = cal.date(from: DateComponents(year: 2026, month: 6, day: 10 + dayOffset))!
+        return cal.date(bySettingHour: hour, minute: minute, second: 0, of: base)!
+    }
+
+    /// Seed a pet directly so tests control health and the sweep window, then
+    /// hand back a fresh lifecycle (its own context reads the seeded row).
+    private func seededLifecycle(health: Double, lastSweep: Date) throws -> (PetLifecycle, ModelContainer, SpyEffects) {
+        let (_, container, spy) = try makeLifecycle()
+        let ctx = ModelContext(container)
+        let pet = Pet(name: "Koa", colorHex: "#73BFA6")
+        pet.health = health
+        pet.lastTaxAppliedAt = lastSweep
+        pet.leavesLedgerDate = Calendar.current.startOfDay(for: lastSweep)
+        ctx.insert(pet)
+        try ctx.save()
+        return (PetLifecycle(modelContainer: container), container, spy)
+    }
+
+    private func pet(_ container: ModelContainer) throws -> Pet {
+        try XCTUnwrap(try ModelContext(container).fetch(FetchDescriptor<Pet>()).first)
+    }
+
+    func testAutoFeedsAtCheckpointsWithoutWastingLeaves() async throws {
+        let (lifecycle, container, spy) = try seededLifecycle(health: 1.0, lastSweep: day(7))
+        await lifecycle.use(spy)
+        // 3 leaves walked first thing in the morning.
+        let history = StepLog(buckets: [.init(start: day(7, 5), steps: 3_000)])
+
+        // Checkpoints every 90 min from 8:30 to 22:00. A leaf is eaten only
+        // once it fits whole (at 0.90), so the 3 leaves go at 10:00, 13:00, 16:00
+        // and the last 4 checkpoints drain 1.0 → 0.80.
+        let outcome = await lifecycle.applyElapsed(now: day(23), steps: 3_000, goal: 10_000, history: history)
+
+        XCTAssertEqual(outcome, .survived(.happy))
+        let pet = try pet(container)
+        XCTAssertEqual(pet.health, 0.80, accuracy: 0.0001)
+        XCTAssertEqual(pet.leavesSpentToday, 3)
+        XCTAssertEqual(spy.autoEaten, 3)
+        XCTAssertEqual(spy.autoFeedEvents, 1, "one cheer per sweep, not per leaf")
+    }
+
+    func testLeavesEarnedLaterCantSaveAnEarlierCheckpoint() async throws {
+        let (lifecycle, container, spy) = try seededLifecycle(health: 0.05, lastSweep: day(7))
+        await lifecycle.use(spy)
+        let history = StepLog(buckets: [.init(start: day(21), steps: 10_000)])
+
+        let outcome = await lifecycle.applyElapsed(now: day(23), steps: 10_000, goal: 10_000, history: history)
+
+        XCTAssertEqual(outcome, .died, "starved at 8:30, before those steps were walked")
+        XCTAssertEqual(try graveCount(container), 1)
+        XCTAssertEqual(spy.autoEaten, 0)
+    }
+
+    func testEarnedLeavesPreventDeath() async throws {
+        let (lifecycle, container, spy) = try seededLifecycle(health: 0.05, lastSweep: day(7))
+        await lifecycle.use(spy)
+        let history = StepLog(buckets: [.init(start: day(7, 5), steps: 2_000)])
+
+        // 8:30 hits zero → eats → 0.10; 10:00 → 0.05; 11:30 hits zero → eats → 0.10.
+        let outcome = await lifecycle.applyElapsed(now: day(12), steps: 2_000, goal: 10_000, history: history)
+
+        guard case .survived = outcome else { return XCTFail("expected survival, got \(outcome)") }
+        XCTAssertEqual(try pet(container).health, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(spy.autoEaten, 2)
+    }
+
+    func testLeftoverLeavesAreEatenAtDayEnd() async throws {
+        let (lifecycle, container, spy) = try seededLifecycle(health: 1.0, lastSweep: day(21))
+        await lifecycle.use(spy)
+        let history = StepLog(buckets: [.init(start: day(7, 5), steps: 1_000)])
+
+        // 22:00 → 0.95: a whole leaf doesn't fit, so it waits. At day's end it
+        // would reset anyway, so it tops the pet off. Next morning, before wake.
+        _ = await lifecycle.applyElapsed(now: day(6, dayOffset: 1), steps: 0, goal: 10_000, history: history)
+
+        XCTAssertEqual(try pet(container).health, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(spy.autoEaten, 1)
+    }
+
+    func testNoCheerWhenNothingWasEaten() async throws {
+        let (lifecycle, _, spy) = try seededLifecycle(health: 1.0, lastSweep: day(7))
+        await lifecycle.use(spy)
+
+        _ = await lifecycle.applyElapsed(now: day(9), steps: 0, goal: 10_000)
+
+        XCTAssertEqual(spy.autoFeedEvents, 0)
+    }
 }

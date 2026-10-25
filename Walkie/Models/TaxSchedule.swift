@@ -39,6 +39,46 @@ enum TaxSchedule {
         }
     }
 
+    /// A moment the sweep replays: a tax checkpoint, or the last second of a day
+    /// (when leftover leaves are eaten before they reset at midnight).
+    enum SweepEvent: Equatable {
+        case checkpoint(Date)
+        case dayEnd(Date)
+    }
+
+    /// Sweep events whose timestamps fall in `(since, now]`, in order.
+    static func events(
+        since startWindow: Date,
+        now: Date,
+        wakeMinutes: Int,
+        sleepMinutes: Int,
+        calendar: Calendar = .current
+    ) -> [SweepEvent] {
+        var cursorDay = calendar.startOfDay(for: startWindow)
+        let endDay = calendar.startOfDay(for: now)
+
+        var events: [SweepEvent] = []
+        while cursorDay <= endDay {
+            for checkpoint in checkpoints(on: cursorDay, wakeMinutes: wakeMinutes, sleepMinutes: sleepMinutes, calendar: calendar) {
+                if checkpoint > startWindow && checkpoint <= now {
+                    events.append(.checkpoint(checkpoint))
+                }
+            }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursorDay) else { break }
+            let dayEnd = next.addingTimeInterval(-1)
+            if dayEnd > startWindow && dayEnd <= now {
+                events.append(.dayEnd(dayEnd))
+            }
+            cursorDay = next
+        }
+        return events
+    }
+
+    /// Convenience using the user's configured wake/sleep times.
+    static func events(since startWindow: Date, now: Date, calendar: Calendar = .current) -> [SweepEvent] {
+        events(since: startWindow, now: now, wakeMinutes: wakeMinutes, sleepMinutes: sleepMinutes, calendar: calendar)
+    }
+
     /// Number of tax checkpoints whose timestamps fall in `(since, now]`.
     static func checkpointsElapsed(
         since startWindow: Date,
@@ -47,20 +87,9 @@ enum TaxSchedule {
         sleepMinutes: Int,
         calendar: Calendar = .current
     ) -> Int {
-        var cursorDay = calendar.startOfDay(for: startWindow)
-        let endDay = calendar.startOfDay(for: now)
-
-        var count = 0
-        while cursorDay <= endDay {
-            for checkpoint in checkpoints(on: cursorDay, wakeMinutes: wakeMinutes, sleepMinutes: sleepMinutes, calendar: calendar) {
-                if checkpoint > startWindow && checkpoint <= now {
-                    count += 1
-                }
-            }
-            guard let next = calendar.date(byAdding: .day, value: 1, to: cursorDay) else { break }
-            cursorDay = next
-        }
-        return count
+        events(since: startWindow, now: now, wakeMinutes: wakeMinutes, sleepMinutes: sleepMinutes, calendar: calendar)
+            .filter { if case .checkpoint = $0 { true } else { false } }
+            .count
     }
 
     /// Convenience using the user's configured wake/sleep times.

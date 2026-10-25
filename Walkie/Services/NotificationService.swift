@@ -29,6 +29,27 @@ final class NotificationService: Sendable {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // The reward for walking: the koala fed itself from leaves the user earned.
+    // Fixed identifier so a newer cheer replaces the last instead of stacking.
+    func sendAutoFeedNotification(petName: String, leaves: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = leaves == 1
+            ? "\(petName) ate a leaf 🍃"
+            : "\(petName) ate \(leaves) leaves 🍃"
+        content.body = Self.autoFeedCheers.randomElement()!
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: "pet.autofeed", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private static let autoFeedCheers = [
+        "Your steps paid off — nice walking!",
+        "Good job getting those steps in.",
+        "Full belly, happy koala. Keep it up!",
+        "Every walk keeps your koala going. Great work!",
+    ]
+
     func sendDeathNotification(petName: String) {
         let content = UNMutableNotificationContent()
         content.title = "\(petName) has passed away..."

@@ -48,14 +48,54 @@ final class HealthKitService {
         let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completionHandler, error in
             guard let self, error == nil else { completionHandler(); return }
             Task {
-                let steps = await self.stepsToday()
-                _ = await lifecycle.applyElapsed(steps: steps, goal: Self.stepGoal)
+                await self.sweep(lifecycle)
                 completionHandler()
             }
         }
 
         store.execute(query)
         observerQuery = query
+    }
+
+    /// Fetch the step history the sweep replays and run it through the actor.
+    /// Skips the sweep when HealthKit can't be read (e.g. the device is locked):
+    /// taxing without step data would lose the leaves the pet should have eaten.
+    func sweep(_ lifecycle: PetLifecycle) async {
+        let now = Date()
+        guard let since = await lifecycle.lastSweepDate(),
+              let history = await stepLog(from: Calendar.current.startOfDay(for: since), to: now)
+        else { return }
+        let steps = await stepsToday()
+        _ = await lifecycle.applyElapsed(now: now, steps: steps, goal: Self.stepGoal, history: history)
+    }
+
+    /// Steps in 5-minute buckets over `[start, end]`. Nil if the query fails.
+    func stepLog(from start: Date, to end: Date) async -> StepLog? {
+        guard HKHealthStore.isHealthDataAvailable() else { return .empty }
+
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: stepType,
+                quantitySamplePredicate: HKQuery.predicateForSamples(withStart: start, end: end),
+                options: .cumulativeSum,
+                anchorDate: start,
+                intervalComponents: DateComponents(minute: 5)
+            )
+            query.initialResultsHandler = { _, collection, error in
+                guard let collection, error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                var buckets: [StepLog.Bucket] = []
+                collection.enumerateStatistics(from: start, to: end) { stats, _ in
+                    if let sum = stats.sumQuantity() {
+                        buckets.append(.init(start: stats.startDate, steps: sum.doubleValue(for: .count())))
+                    }
+                }
+                continuation.resume(returning: StepLog(buckets: buckets))
+            }
+            store.execute(query)
+        }
     }
 
     func stepsToday() async -> Int {

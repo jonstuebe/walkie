@@ -53,4 +53,15 @@ final class TaxScheduleTests: XCTestCase {
         )
         XCTAssertEqual(count, 1)
     }
+
+    func testEventsIncludeDayEndAfterLastCheckpoint() {
+        let day = cal.date(from: DateComponents(year: 2026, month: 7, day: 14))!
+        let start = cal.startOfDay(for: day)
+        let nextMorning = start.addingTimeInterval(30 * 3600)  // 6:00 the next day
+
+        let events = TaxSchedule.events(since: start, now: nextMorning, wakeMinutes: 7 * 60, sleepMinutes: 22 * 60, calendar: cal)
+
+        XCTAssertEqual(events.count, 11, "10 checkpoints then the day's end")
+        XCTAssertEqual(events.last, .dayEnd(start.addingTimeInterval(86_400 - 1)))
+    }
 }
