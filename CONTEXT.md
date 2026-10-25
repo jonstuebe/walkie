@@ -17,6 +17,7 @@ The feeding currency. The koala eats **leaves** (eucalyptus — koalas don't eat
 
 - **leaves earned** — total leaves today's steps have unlocked.
 - **leaves available** — earned minus spent-today (after the daily rollover).
+- **auto-feeding** — the koala eats its own leaves. Each sweep replays the tax checkpoints since the last one; after each checkpoint it eats leaves earned *by that time* while a whole leaf fits under full health (so earned leaves can save it from death), and at each day's end it eats any leftovers before they reset. Sweeps are retroactive, so the app needn't be running. Each sweep that ate anything sends one cheer notification.
 
 > The forest **backdrop** art (`BambooStalk`, `ForestBackdrop`) is scenery, not the leaves currency, and is intentionally left under its old name. It's a separate visual concern.
 

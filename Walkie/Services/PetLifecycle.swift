@@ -16,6 +16,9 @@ actor PetLifecycle {
         case died
     }
 
+    /// Health one leaf restores: half a heart.
+    private static let healthPerLeaf = 0.1
+
     // Overridable for tests; production uses the real singletons.
     private var effects: LifecycleEffects = SystemLifecycleEffects()
 
@@ -42,30 +45,49 @@ actor PetLifecycle {
         let available = LeafLedger.available(steps: steps, goal: goal, spent: pet.leavesSpent(asOf: now))
         guard available > 0, pet.health < 1.0 else { return }
         pet.leavesSpentToday += 1
-        pet.health = min(1.0, pet.health + 0.1)
+        setHealth(pet, pet.health + Self.healthPerLeaf)
         try? modelContext.save()
         writeSnapshot(for: pet, steps: steps, goal: goal)
     }
 
-    /// Apply any tax checkpoints elapsed since the last sweep. If health reaches
-    /// zero the pet dies (grave + delete + fan-out). The single entry point for
-    /// both the foreground refresh and the background observer.
+    /// The last sweep's timestamp — the start of the window the next sweep
+    /// replays, so callers know how much step history to fetch. Nil if no pet.
+    func lastSweepDate() -> Date? {
+        currentPet()?.lastTaxAppliedAt
+    }
+
+    /// Replay everything since the last sweep. At each tax checkpoint the pet
+    /// is taxed, then auto-eats any leaves `history` says it had earned by
+    /// then; at each day's end it eats whatever's left before the midnight
+    /// reset. If health reaches zero the pet dies (grave + delete + fan-out).
+    /// The single entry point for both the foreground refresh and the
+    /// background observer. `steps` is today's total as of `now`.
     @discardableResult
-    func applyElapsed(now: Date = Date(), steps: Int, goal: Int) -> Outcome {
+    func applyElapsed(now: Date = Date(), steps: Int, goal: Int, history: StepLog = .empty) -> Outcome {
         guard let pet = currentPet() else { return .noPet }
 
-        let elapsed = TaxSchedule.checkpointsElapsed(since: pet.lastTaxAppliedAt, now: now)
-        if elapsed > 0 {
-            pet.health = max(0, pet.health - TaxSchedule.taxPerCheckpoint * Double(elapsed))
+        var eaten = 0
+        for event in TaxSchedule.events(since: pet.lastTaxAppliedAt, now: now) {
+            switch event {
+            case .checkpoint(let at):
+                setHealth(pet, pet.health - TaxSchedule.taxPerCheckpoint)
+                // Eat before the death check, so earned leaves can save the pet.
+                eaten += autoFeed(pet, steps: history.stepsWalked(by: at), goal: goal, at: at, topOff: false)
+                if pet.health <= 0 {
+                    return kill(pet)
+                }
+            case .dayEnd(let at):
+                eaten += autoFeed(pet, steps: history.stepsWalked(by: at), goal: goal, at: at, topOff: true)
+            }
         }
         pet.lastTaxAppliedAt = now
-
-        if pet.health <= 0 {
-            return kill(pet)
-        }
+        eaten += autoFeed(pet, steps: steps, goal: goal, at: now, topOff: false)
 
         try? modelContext.save()
         writeSnapshot(for: pet, steps: steps, goal: goal)
+        if eaten > 0 {
+            effects.leavesAutoEaten(count: eaten, name: pet.name)
+        }
         effects.healthChanged(to: pet.healthState, name: pet.name)
         return .survived(pet.healthState)
     }
@@ -74,6 +96,31 @@ actor PetLifecycle {
 
     private func currentPet() -> Pet? {
         try? modelContext.fetch(FetchDescriptor<Pet>()).first
+    }
+
+    /// Eat leaves earned by `at` while a whole leaf fits under full health.
+    /// With `topOff` (end of day) it also eats one that only partly fits,
+    /// since unspent leaves reset at midnight anyway. Returns leaves eaten.
+    private func autoFeed(_ pet: Pet, steps: Int, goal: Int, at: Date, topOff: Bool) -> Int {
+        // A manual feed already rolled the ledger past this day; its count is gone.
+        guard pet.leavesLedgerDate <= Calendar.current.startOfDay(for: at) else { return 0 }
+        rollLedgerIfNeeded(pet, now: at)
+
+        var available = LeafLedger.available(steps: steps, goal: goal, spent: pet.leavesSpent(asOf: at))
+        var eaten = 0
+        while available > 0, pet.health < 1.0, topOff || pet.health + Self.healthPerLeaf <= 1.0 {
+            pet.leavesSpentToday += 1
+            setHealth(pet, pet.health + Self.healthPerLeaf)
+            available -= 1
+            eaten += 1
+        }
+        return eaten
+    }
+
+    /// Clamp to 0...1 and snap to hundredths, so repeated ±0.05/0.1 steps land
+    /// exactly on 0 and 1 instead of drifting by floating-point error.
+    private func setHealth(_ pet: Pet, _ value: Double) {
+        pet.health = (min(1.0, max(0, value)) * 100).rounded() / 100
     }
 
     private func rollLedgerIfNeeded(_ pet: Pet, now: Date) {

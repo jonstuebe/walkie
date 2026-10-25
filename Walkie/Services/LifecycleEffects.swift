@@ -13,6 +13,8 @@ protocol LifecycleEffects: Sendable {
     func snapshotCleared()
     /// The pet died. Notify the user.
     func petDied(name: String)
+    /// The pet fed itself from earned leaves during a sweep. Cheer the user on.
+    func leavesAutoEaten(count: Int, name: String)
     /// The pet survived a tax sweep at the given health. Nudge if it's getting low.
     func healthChanged(to state: Pet.HealthState, name: String)
 }
@@ -36,6 +38,10 @@ struct SystemLifecycleEffects: LifecycleEffects {
 
     func petDied(name: String) {
         NotificationService.shared.sendDeathNotification(petName: name)
+    }
+
+    func leavesAutoEaten(count: Int, name: String) {
+        NotificationService.shared.sendAutoFeedNotification(petName: name, leaves: count)
     }
 
     func healthChanged(to state: Pet.HealthState, name: String) {

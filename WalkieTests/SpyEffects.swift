@@ -11,17 +11,22 @@ final class SpyEffects: LifecycleEffects, @unchecked Sendable {
     private var _died = 0
     private var _snapshotUpdates = 0
     private var _snapshotClears = 0
+    private var _autoEaten = 0
+    private var _autoFeedEvents = 0
     private var _lastHealthState: Pet.HealthState?
 
     var hatched: Int { lock.withLock { _hatched } }
     var died: Int { lock.withLock { _died } }
     var snapshotUpdates: Int { lock.withLock { _snapshotUpdates } }
     var snapshotClears: Int { lock.withLock { _snapshotClears } }
+    var autoEaten: Int { lock.withLock { _autoEaten } }
+    var autoFeedEvents: Int { lock.withLock { _autoFeedEvents } }
     var lastHealthState: Pet.HealthState? { lock.withLock { _lastHealthState } }
 
     func petHatched(name: String, colorHex: String) { lock.withLock { _hatched += 1 } }
     func snapshotUpdated(_ snapshot: PetSnapshot) { lock.withLock { _snapshotUpdates += 1 } }
     func snapshotCleared() { lock.withLock { _snapshotClears += 1 } }
     func petDied(name: String) { lock.withLock { _died += 1 } }
+    func leavesAutoEaten(count: Int, name: String) { lock.withLock { _autoEaten += count; _autoFeedEvents += 1 } }
     func healthChanged(to state: Pet.HealthState, name: String) { lock.withLock { _lastHealthState = state } }
 }

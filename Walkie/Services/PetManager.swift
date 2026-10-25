@@ -17,14 +17,13 @@ final class PetManager {
         self.healthKit = healthKit
     }
 
-    /// Pull fresh steps and run the tax sweep through the actor.
+    /// Pull fresh steps and run the tax sweep (with auto-feeding) through the actor.
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
 
         await healthKit.requestAuthorization()
-        let steps = await healthKit.stepsToday()
-        _ = await lifecycle.applyElapsed(steps: steps, goal: HealthKitService.stepGoal)
+        await healthKit.sweep(lifecycle)
     }
 
     /// Spend a leaf. Fire-and-forget; the @Query-backed view refreshes when the
